@@ -1,0 +1,65 @@
+{
+  "project_name": "SGP-Pharma",
+  "domain": "Pharmacy Management System (Dashboard & POS)",
+  "theme": "Light",
+  "archetype": "1_organic_and_earthy",
+  "design_rationale": "Trust, clarity, and speed are paramount for a pharmacy POS in a medical context. The UI avoids clinical coldness by utilizing warm stone-greys and deep forest greens, establishing trust and calm.",
+  "colors": {
+    "background": "#F9FAFB",
+    "surface": "#FFFFFF",
+    "primary": "#166534",
+    "primary_hover": "#14532D",
+    "secondary": "#E4E4E7",
+    "accent_warning": "#F59E0B",
+    "accent_danger": "#EF4444",
+    "text_primary": "#111827",
+    "text_secondary": "#4B5563",
+    "border": "#E5E7EB"
+  },
+  "typography": {
+    "fonts": {
+      "heading": "Manrope, sans-serif",
+      "body": "Work Sans, sans-serif"
+    },
+    "scale": {
+      "h1": "text-4xl tracking-tight font-black",
+      "h2": "text-3xl tracking-tight font-bold",
+      "h3": "text-xl font-bold",
+      "body": "text-base font-normal",
+      "small": "text-sm font-medium",
+      "label": "text-xs tracking-[0.2em] uppercase font-bold"
+    }
+  },
+  "layout_and_spacing": {
+    "grid_strategy": "Control Room Grid (Dense, Data-heavy)",
+    "container_padding": "p-6 md:p-8",
+    "gap": "gap-4 md:gap-6",
+    "border_radius": "rounded-md",
+    "surfaces": "Flat solid surfaces. No glassmorphism. Crisp 1px borders (border-gray-200) with subtle or no shadows."
+  },
+  "component_guidelines": {
+    "buttons": "Solid backgrounds for primary actions (bg-[#166534] text-white hover:bg-[#14532D]). Flat with 1px border for secondary. No heavy shadows.",
+    "cards": "White background, rounded-md, 1px border (border-gray-200), tight padding (p-4 or p-6).",
+    "tables": "Dense rows, left-aligned data, clear zebra striping or bottom borders. FEFO badges inline.",
+    "inputs": "Shadcn default with focus:ring-[#166534]. Must have visible contrast.",
+    "navigation": "Sidebar navigation with Lucide icons. Fixed position, high contrast active states."
+  },
+  "images_and_media": {
+    "login_background": {
+      "url": "https://images.unsplash.com/photo-1677611998429-1baa4371456b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdyZWVuJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3Nzc2NzUyOTB8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract green background for the login page hero section.",
+      "usage": "Use with a heavy overlay (e.g. bg-white/80 or bg-gray-50/90) behind the login card to provide medical-themed texture without overwhelming the form."
+    }
+  },
+  "accessibility_and_motion": {
+    "contrast": "Ensure all text meets at least 4.5:1 ratio. Warning and danger text should be paired with light background colors for badges (e.g., bg-red-50 text-red-600).",
+    "motion": "Minimalistic micro-interactions. Subtle transforms on button hover (-translate-y-[1px]).",
+    "testing": "All interactive elements MUST include data-testid (e.g., 'pos-add-to-cart-button', 'login-submit')."
+  },
+  "key_features_design_requirements": {
+    "dashboard": "Use bento grid for KPIs: CA du jour, Ordonnances, Valeur Stock. Must include a 'Alertes Péremption' widget with red/orange badges.",
+    "pos_module": "Split screen: 2/3 dense product search and list, 1/3 fixed right sidebar for current cart/basket. Auto-select FEFO lot.",
+    "fefo_badges": "Always display FEFO status clearly. Green = Safe (> 6 months), Orange = Expiring Soon (< 6 months), Red = Expired.",
+    "i18n": "Design must accommodate text expansion for FR/EN language switching."
+  }
+}
