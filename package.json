@@ -1,0 +1,12 @@
+{
+  "name": "sgp-pharma-local",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\install-local.ps1",
+    "start": "concurrently -n BACKEND,FRONTEND -c green,cyan \"powershell -NoProfile -Command Set-Location backend; ..\\.venv\\Scripts\\python -m uvicorn server:app --host 0.0.0.0 --port 8000 --reload\" \"yarn --cwd frontend start\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

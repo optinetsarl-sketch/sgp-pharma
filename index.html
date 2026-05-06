@@ -4,17 +4,59 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#00d4ff" />
-    <meta name="description" content="OPTINET SARLU - Solutions IT, Réseaux & Télécommunications, Cybersécurité, Énergie" />
+    <meta name="description" content="OPTINET SARLU - Solutions IT, Reseaux & Telecommunications, Cybersecurite, Energie" />
     <title>OPTINET SARLU</title>
 
     <!-- Favicon -->
     <link rel="icon" href="%PUBLIC_URL%/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
 
-    <!-- ⚠️ OPTIONNEL : À garder seulement si tu n'utilises PAS Tailwind via npm -->
+    <!-- Optionnel : a garder seulement si tu n'utilises pas Tailwind via npm -->
     <!-- <script src="https://cdn.tailwindcss.com"></script> -->
 
     <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: #ffffff;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(0, 212, 255, 0.18), transparent 28%),
+          linear-gradient(135deg, #07111f 0%, #0b2745 48%, #102c4e 100%);
+      }
+
+      #root {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+
+      .welcome {
+        width: min(720px, 100%);
+        text-align: center;
+      }
+
+      .welcome h1 {
+        margin: 0 0 14px;
+        font-size: clamp(2rem, 7vw, 4.5rem);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .welcome p {
+        margin: 0 auto;
+        max-width: 560px;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: clamp(1rem, 2.5vw, 1.25rem);
+        line-height: 1.6;
+      }
+
       #personal-badge {
         position: fixed;
         bottom: 5px;
@@ -32,18 +74,22 @@
         z-index: 9999;
         border: 1px solid #00d4ff;
       }
+
       #personal-badge:hover {
         background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%);
         color: #000;
       }
+
       #personal-badge .name {
         font-weight: 700;
         font-size: 11px;
       }
+
       #personal-badge .title {
         font-size: 9px;
         opacity: 0.95;
       }
+
       #personal-badge .contact {
         font-size: 9px;
         opacity: 0.9;
@@ -55,8 +101,12 @@
 <body>
     <noscript>Vous devez activer JavaScript pour utiliser cette application OPTINET.</noscript>
 
-    <!-- ⚠️ React MONTE TOUT ICI -->
-    <div id="root"></div>
+    <div id="root">
+        <main class="welcome">
+            <h1>Bienvenue chez OPTINET SARLU</h1>
+            <p>Solutions IT, reseaux, telecommunications, cybersecurite et energie pour accompagner vos projets numeriques.</p>
+        </main>
+    </div>
 
     <!-- Badge signature OPTINET -->
     <a id="personal-badge"
@@ -67,7 +117,5 @@
         <div class="title"></div>
         <div class="contact"></div>
     </a>
-
-    <!-- ❌ AUCUN SCRIPT MANUEL -->
 </body>
 </html>

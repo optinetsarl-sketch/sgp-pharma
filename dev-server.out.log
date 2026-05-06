@@ -1,0 +1,43 @@
+
+> sgp-pharma-local@1.0.0 start
+> concurrently -n BACKEND,FRONTEND -c green,cyan "powershell -NoProfile -Command Set-Location backend; ..\.venv\Scripts\python -m uvicorn server:app --host 0.0.0.0 --port 8000 --reload" "yarn --cwd frontend start"
+
+[FRONTEND] yarn run v1.22.22
+[FRONTEND] $ craco start
+[BACKEND] INFO:     Will watch for changes in these directories: ['C:\\MES  PROJET_APP\\Gestion de Pharmacie (SGP)\\backend']
+[BACKEND] INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[BACKEND] INFO:     Started reloader process [19520] using WatchFiles
+[FRONTEND] (node:16480) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+[FRONTEND] (Use `node --trace-deprecation ...` to show where the warning was created)
+[BACKEND] INFO:     Started server process [18388]
+[BACKEND] INFO:     Waiting for application startup.
+[BACKEND] 2026-05-06 12:22:38,515 - INFO - SGP-Pharma startup complete
+[BACKEND] INFO:     Application startup complete.
+[FRONTEND] (node:16480) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+[FRONTEND] (node:16480) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+[FRONTEND] Starting the development server...
+[FRONTEND] 
+[FRONTEND] Compiled successfully!
+[FRONTEND] 
+[FRONTEND] You can now view frontend in the browser.
+[FRONTEND] 
+[FRONTEND]   Local:            http://localhost:3000
+[FRONTEND]   On Your Network:  http://192.168.1.79:3000
+[FRONTEND] 
+[FRONTEND] Note that the development build is not optimized.
+[FRONTEND] To create a production build, use yarn build.
+[FRONTEND] 
+[FRONTEND] webpack compiled [1m[32msuccessfully[39m[22m
+[BACKEND] INFO:     127.0.0.1:54731 - "GET /api/health HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:52497 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:52497 - "POST /api/auth/login HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:52497 - "OPTIONS /api/pharmacies/de8fd657-e50e-4743-a3cd-0d92d2a4ca11 HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:52497 - "GET /api/pharmacies/de8fd657-e50e-4743-a3cd-0d92d2a4ca11 HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:52497 - "OPTIONS /api/dashboard HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:53119 - "OPTIONS /api/batches/expiring?days=60 HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:63181 - "OPTIONS /api/dashboard HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:55353 - "OPTIONS /api/batches/expiring?days=60 HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:63181 - "GET /api/batches/expiring?days=60 HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:53119 - "GET /api/batches/expiring?days=60 HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:55353 - "GET /api/dashboard HTTP/1.1" 200 OK
+[BACKEND] INFO:     127.0.0.1:53119 - "GET /api/dashboard HTTP/1.1" 200 OK

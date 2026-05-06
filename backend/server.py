@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="SGP-Pharma API", version="1.0.0")
 
-# CORS — allow Emergent preview domains and localhost dev with credentials
+# CORS: local frontend only.
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(.*\.preview\.emergentagent\.com|localhost(:\d+)?|127\.0\.0\.1(:\d+)?)",
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

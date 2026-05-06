@@ -9,7 +9,7 @@ import asyncio
 from pathlib import Path
 from playwright.async_api import async_playwright
 
-BASE_URL = "https://d48aef7d-6c90-4d7b-a2fd-00d125d8780e.preview.emergentagent.com"
+BASE_URL = "http://localhost:3000"
 OUT_DIR = Path("/app/docs/screenshots")
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
