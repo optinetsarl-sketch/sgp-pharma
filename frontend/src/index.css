@@ -72,11 +72,86 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
-/* Print-friendly receipt */
+/* -------------------------------------------------------------
+   PRINT MEDIA STYLES (A4 Document & Thermal 80mm Receipt)
+------------------------------------------------------------- */
 @media print {
-    body * { visibility: hidden; }
-    .printable, .printable * { visibility: visible; }
-    .printable { position: absolute; left: 0; top: 0; width: 100%; }
+    /* Page reset */
+    @page {
+        size: A4 portrait;
+        margin: 10mm 12mm 15mm 12mm;
+    }
+
+    html, body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        font-size: 10.5pt !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* Hide standard UI elements */
+    aside,
+    header,
+    nav,
+    #optinet-badge,
+    #personal-badge,
+    .print\:hidden,
+    [data-testid="app-sidebar"],
+    .no-print {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Reset main wrapper */
+    main,
+    #root,
+    .min-h-screen {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background: #ffffff !important;
+    }
+
+    /* A4 Document Class */
+    .printable-a4 {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .printable-a4 table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .printable-a4 th,
+    .printable-a4 td {
+        border-color: #cbd5e1 !important;
+    }
+
+    .printable-a4 tr {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Thermal receipt (80mm) when active */
+    .printable-receipt {
+        width: 76mm !important;
+        max-width: 76mm !important;
+        margin: 0 auto !important;
+        padding: 2mm !important;
+        font-family: "Courier New", Courier, monospace !important;
+    }
 }
 
 @layer base {

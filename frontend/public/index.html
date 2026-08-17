@@ -3,71 +3,117 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#00d4ff" />
-    <meta name="description" content="OPTINET SARLU - Solutions IT, Réseaux & Télécommunications, Cybersécurité, Énergie" />
-    <title>OPTINET SARLU</title>
+    <meta name="theme-color" content="#166534" />
+    <meta name="description" content="PharmaLife Hope - Solution professionnelle de gestion de pharmacie pour le Togo et l'Afrique de l'Ouest" />
+    <title>PharmaLife Hope - Gestion de Pharmacie</title>
 
     <!-- Favicon -->
     <link rel="icon" href="%PUBLIC_URL%/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/apple-touch-icon.png" />
 
-    <!-- ⚠️ OPTIONNEL : À garder seulement si tu n'utilises PAS Tailwind via npm -->
-    <!-- <script src="https://cdn.tailwindcss.com"></script> -->
-
     <style>
-      #personal-badge {
+      /* --- Bulle Flottante Dépliable OPTINET (Version Récente) --- */
+      #optinet-badge {
         position: fixed;
-        bottom: 5px;
-        right: 15px;
-        display: inline-block;
-        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        color: #fff;
-        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-        padding: 8px 14px;
-        border-radius: 6px;
+        bottom: 20px;
+        right: 20px;
+        display: inline-flex;
+        align-items: center;
+        height: 46px;
+        width: 46px;
+        padding: 0 13px;
+        border-radius: 23px;
+        background: linear-gradient(135deg, #0f4c5c 0%, #1d7a8c 100%);
+        color: #ffffff;
         text-decoration: none;
-        font-size: 11px;
-        font-weight: 600;
-        box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-        z-index: 9999;
-        border: 1px solid #00d4ff;
-      }
-      #personal-badge:hover {
-        background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%);
-        color: #000;
-      }
-      #personal-badge .name {
+        font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+        font-size: 12px;
         font-weight: 700;
-        font-size: 11px;
+        box-shadow: 0 6px 20px rgba(15, 76, 92, 0.4), 0 0 0 1.5px rgba(0, 212, 255, 0.6);
+        z-index: 99999;
+        overflow: hidden;
+        white-space: nowrap;
+        box-sizing: border-box;
+        transition: width 0.4s cubic-bezier(0.34, 1.45, 0.64, 1),
+                    background 0.3s ease,
+                    box-shadow 0.3s ease,
+                    transform 0.2s ease;
+        cursor: pointer;
       }
-      #personal-badge .title {
-        font-size: 9px;
-        opacity: 0.95;
+
+      #optinet-badge:hover {
+        width: 205px;
+        background: linear-gradient(135deg, #1d7a8c 0%, #00d4ff 100%);
+        color: #041f28;
+        box-shadow: 0 10px 28px rgba(0, 212, 255, 0.5), 0 0 0 2px #ffffff;
+        transform: translateY(-2px);
       }
-      #personal-badge .contact {
-        font-size: 9px;
-        opacity: 0.9;
-        margin-top: 2px;
+
+      #optinet-badge:active {
+        transform: translateY(0) scale(0.97);
+      }
+
+      #optinet-badge .badge-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+        transition: transform 0.3s ease;
+      }
+
+      #optinet-badge:hover .badge-icon {
+        transform: rotate(360deg);
+      }
+
+      #optinet-badge .badge-text {
+        margin-left: 10px;
+        opacity: 0;
+        transform: translateX(12px);
+        transition: opacity 0.3s ease 0.08s, transform 0.3s ease 0.08s;
+        pointer-events: none;
+        font-size: 12px;
+        letter-spacing: 0.3px;
+      }
+
+      #optinet-badge:hover .badge-text {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      /* MASQUAGE TOTAL ET GARANTI SUR TOUTES LES IMPRESSIONS */
+      @media print {
+        #optinet-badge, #optinet-badge *,
+        #personal-badge, #personal-badge * {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          height: 0 !important;
+          width: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
       }
     </style>
 </head>
 
 <body>
-    <noscript>Vous devez activer JavaScript pour utiliser cette application OPTINET.</noscript>
+    <noscript>Vous devez activer JavaScript pour utiliser cette application PharmaLife Hope.</noscript>
 
-    <!-- ⚠️ React MONTE TOUT ICI -->
+    <!-- React App Container -->
     <div id="root"></div>
 
-    <!-- Badge signature OPTINET -->
-    <a id="personal-badge"
-       href="https://optinettogo.com"
+    <!-- Bulle flottante interactive OPTINET (Version Récente) -->
+    <a id="optinet-badge"
+       href="https://optinet.ginolux.com/galerie"
        target="_blank"
-       rel="noopener noreferrer">
-        <div class="name">© 2026 · OPTINET-SARLU</div>
-        <div class="title"></div>
-        <div class="contact"></div>
+       rel="noopener noreferrer"
+       title="Visiter le site officiel OPTINET SARLU">
+        <div class="badge-icon">
+            <img src="%PUBLIC_URL%/optinet-logo.png" alt="OPTINET" style="width:100%; height:100%; object-fit:contain;" />
+        </div>
+        <span class="badge-text">© 2026 · OPTINET-SARLU</span>
     </a>
-
-    <!-- ❌ AUCUN SCRIPT MANUEL -->
 </body>
 </html>

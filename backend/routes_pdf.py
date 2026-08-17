@@ -41,7 +41,12 @@ async def sale_receipt_pdf(sid: str, user: dict = Depends(get_current_user)):
     assert_same_pharmacy(user, sale)
 
     # Pharmacy header
-    pharmacy = await db.pharmacies.find_one({"id": sale.get("pharmacy_id")}, {"_id": 0}) or {"name": "Pharmacie"}
+    pharmacy = None
+    if sale.get("pharmacy_id"):
+        pharmacy = await db.pharmacies.find_one({"id": sale["pharmacy_id"]}, {"_id": 0})
+    if not pharmacy:
+        pharmacy = await db.pharmacies.find_one({}, {"_id": 0}) or {"name": "PHARMACIE"}
+
     cashier = await db.users.find_one({"id": sale["user_id"]}, {"_id": 0, "name": 1, "email": 1}) or {"name": "?"}
 
     # Build product map
@@ -52,9 +57,9 @@ async def sale_receipt_pdf(sid: str, user: dict = Depends(get_current_user)):
     # 80mm width = 226 pts ; height auto-sized via canvas redraw
     width = 80 * mm
     # Estimate height
-    base_lines = 12
-    item_lines = sum(2 for _ in sale["items"])  # 2 lines per item
-    height = (base_lines + item_lines + 6) * 4.2 * mm
+    base_lines = 16
+    item_lines = sum(2 for _ in sale["items"])
+    height = (base_lines + item_lines + 8) * 4.2 * mm
 
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(width, height))
@@ -78,7 +83,8 @@ async def sale_receipt_pdf(sid: str, user: dict = Depends(get_current_user)):
         c.line(2 * mm, y + 1 * mm, width - 2 * mm, y + 1 * mm)
         y -= 1.5 * mm
 
-    line(pharmacy.get("name", "Pharmacie"), 10, True, True)
+    # Pharmacy header
+    line(pharmacy.get("name", "PHARMACIE SGP-PHARMA").upper(), 10, True, True)
     if pharmacy.get("address"):
         line(pharmacy["address"], 7, center=True)
     if pharmacy.get("phone"):
@@ -86,32 +92,52 @@ async def sale_receipt_pdf(sid: str, user: dict = Depends(get_current_user)):
     if pharmacy.get("license_number"):
         line(f"N° Agrément: {pharmacy['license_number']}", 7, center=True)
     hr()
-    line(f"TICKET #{sid[:8].upper()}", 9, True)
+
+    # Ticket Meta
+    line(f"TICKET #TC-{sid[:8].upper()}", 9, True)
     line(f"Date: {fmt_dt(sale.get('date'))}", 7)
-    line(f"Caissier: {cashier.get('name', '?')}", 7)
+    line(f"Caissier: {cashier.get('name', 'Opérateur')}", 7)
     if sale.get("customer_name"):
         line(f"Client: {sale['customer_name']}", 7)
     if sale.get("prescription_ref"):
-        line(f"Ord: {sale['prescription_ref']}", 7)
+        line(f"Réf. Ord: {sale['prescription_ref']} (Rx)", 7, bold=True)
+    line(f"Règlement: {sale.get('payment_method', 'ESPECES').upper()}", 7)
     hr()
+
+    # Items
     for it in sale["items"]:
         prod = pmap.get(it["product_id"], {})
-        name = prod.get("nom_commercial", "?")
-        # Wrap long names
-        if len(name) > 28:
-            name = name[:27] + "."
+        name = prod.get("nom_commercial", "Médicament")
+        is_rx = prod.get("requires_prescription", False)
+        if is_rx:
+            name = f"[Rx] {name}"
+        if len(name) > 30:
+            name = name[:29] + "."
         line(name, 8, True)
-        line(f"  {it['quantity']} x {fmt_xof(it['unit_price'])}    {fmt_xof(it['subtotal'])}", 8)
+        sub_str = fmt_xof(it["subtotal"])
+        line(f"  {it['quantity']} x {fmt_xof(it['unit_price'])}", 7)
+        c.setFont("Helvetica-Bold", 8)
+        c.drawRightString(width - 3 * mm, y + line_h, sub_str)
     hr()
+
+    # Total
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(3 * mm, y, "TOTAL")
+    c.drawString(3 * mm, y, "TOTAL TTC")
     total_str = fmt_xof(sale.get("total_amount", 0))
     c.drawRightString(width - 3 * mm, y, total_str)
     y -= line_h * 1.5
-    line(f"Mode: {sale.get('payment_method', '').upper()}", 8)
-    hr()
-    line("Merci de votre visite", 8, True, center=True)
-    line("SGP-Pharma · OPTINET", 6, center=True)
+
+    if sale.get("amount_received"):
+        line(f"Reçu: {fmt_xof(sale.get('amount_received'))}", 7)
+        if sale.get("change_due") is not None:
+            line(f"Rendu: {fmt_xof(sale.get('change_due'))}", 7, bold=True)
+        hr()
+
+    # Footer
+    line("Merci de votre visite · Bon rétablissement !", 7, True, center=True)
+    line("Les médicaments ne sont ni repris ni échangés.", 6, center=True)
+    line(f"*TC-{sid[:8].upper()}*", 7, center=True)
+    line("SGP-Pharma · OPTINET SARLU Lomé", 6, center=True)
 
     c.showPage()
     c.save()
@@ -160,16 +186,19 @@ async def purchase_order_pdf(oid: str, user: dict = Depends(get_current_user)):
         story.append(Paragraph(f"Tél: {pharmacy['phone']} — {pharmacy.get('email', '')}", small_st))
     story.append(Spacer(1, 12))
 
-    # Supplier + dates
+    # Supplier + PRA + Delivery + dates
+    pra_info = f"<br/><font color='#166534'><b>📍 Destinataire : {order['target_pra_name']}</b></font>" if order.get("target_pra_name") else ""
+    delivery_info = f"<br/><font color='#374151'>Livraison : {order.get('delivery_city') or pharmacy.get('city', 'Togo')}</font>"
+
     info_data = [
-        [Paragraph("FOURNISSEUR", label_st), Paragraph("DATE", label_st), Paragraph("STATUT", label_st)],
+        [Paragraph("FOURNISSEUR / PRA DESTINATAIRE", label_st), Paragraph("DATE DE COMMANDE", label_st), Paragraph("STATUT", label_st)],
         [
-            Paragraph(f"<b>{supplier.get('raison_sociale', '?')}</b><br/>{supplier.get('adresse', '') or ''}<br/>{supplier.get('telephone', '') or ''}", body_st),
+            Paragraph(f"<b>{supplier.get('raison_sociale', '?')}</b>{pra_info}<br/>{supplier.get('adresse', '') or ''}<br/>{supplier.get('telephone', '') or ''}{delivery_info}", body_st),
             Paragraph(fmt_dt(order.get("created_at")), body_st),
             Paragraph(order.get("status", "draft").upper(), body_st),
         ],
     ]
-    info_tbl = Table(info_data, colWidths=[80*mm, 45*mm, 45*mm])
+    info_tbl = Table(info_data, colWidths=[85*mm, 45*mm, 40*mm])
     info_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#F3F4F6")),
         ("BOX", (0, 0), (-1, -1), 0.5, colors.HexColor("#E5E7EB")),

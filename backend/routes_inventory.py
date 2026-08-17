@@ -231,13 +231,17 @@ async def create_order(payload: PurchaseOrderRequest, user: dict = Depends(requi
         "status": "draft",
         "total": total,
         "notes": payload.notes,
+        "target_pra_id": payload.target_pra_id,
+        "target_pra_name": payload.target_pra_name,
+        "target_pra_city": payload.target_pra_city,
+        "delivery_city": payload.delivery_city,
         "created_at": now_utc().isoformat(),
         "user_id": user["id"],
     }
     stamp_pharmacy(user, doc)
     await db.purchase_orders.insert_one(doc)
     doc.pop("_id", None)
-    await log_audit(user, "purchase_order.create", "purchase_order", oid, {"total": total})
+    await log_audit(user, "purchase_order.create", "purchase_order", oid, {"total": total, "pra": payload.target_pra_name})
     return doc
 
 

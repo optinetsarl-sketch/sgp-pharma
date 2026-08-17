@@ -100,3 +100,27 @@ async def on_startup():
 @app.on_event("shutdown")
 async def on_shutdown():
     await close_db()
+
+
+# --- SERVE FRONTEND STATIC FILES (STANDALONE PRODUCTION BUNDLE) ---
+import sys
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+frontend_build_dir = Path(__file__).resolve().parent.parent / "frontend" / "build"
+if not frontend_build_dir.exists() and hasattr(sys, "_MEIPASS"):
+    frontend_build_dir = Path(sys._MEIPASS) / "frontend_build"
+
+if frontend_build_dir.exists():
+    static_assets = frontend_build_dir / "static"
+    if static_assets.exists():
+        app.mount("/static", StaticFiles(directory=str(static_assets)), name="static")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path and (frontend_build_dir / full_path).is_file():
+            return FileResponse(frontend_build_dir / full_path)
+        index_html = frontend_build_dir / "index.html"
+        if index_html.exists():
+            return FileResponse(index_html)
+        return {"error": "Frontend build not found"}

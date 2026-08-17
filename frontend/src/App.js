@@ -14,6 +14,7 @@ import Suppliers from "@/pages/Suppliers";
 import Reception from "@/pages/Reception";
 import Stock from "@/pages/Stock";
 import POS from "@/pages/POS";
+import SalesHistory from "@/pages/SalesHistory";
 import Losses from "@/pages/Losses";
 import Reports from "@/pages/Reports";
 import Users from "@/pages/Users";
@@ -21,6 +22,7 @@ import AuditLog from "@/pages/AuditLog";
 import Orders from "@/pages/Orders";
 import Pharmacies from "@/pages/Pharmacies";
 import Documentation from "@/pages/Documentation";
+import PharmacySetup from "@/pages/PharmacySetup";
 
 function Shell({ children }) { return <Layout>{children}</Layout>; }
 
@@ -34,6 +36,8 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Shell><Dashboard /></Shell></ProtectedRoute>} />
             <Route path="/pos" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><POS /></Shell></ProtectedRoute>} />
+            <Route path="/sales" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><SalesHistory /></Shell></ProtectedRoute>} />
+            <Route path="/sales-history" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><SalesHistory /></Shell></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Shell><Products /></Shell></ProtectedRoute>} />
             <Route path="/stock" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Stock /></Shell></ProtectedRoute>} />
             <Route path="/reception" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Reception /></Shell></ProtectedRoute>} />
@@ -43,8 +47,10 @@ function App() {
             <Route path="/reports" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist"]}><Shell><Reports /></Shell></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute roles={["super_admin", "admin"]}><Shell><Users /></Shell></ProtectedRoute>} />
             <Route path="/pharmacies" element={<ProtectedRoute roles={["super_admin", "admin"]}><Shell><Pharmacies /></Shell></ProtectedRoute>} />
+            <Route path="/setup" element={<ProtectedRoute roles={["super_admin", "admin"]}><Shell><PharmacySetup /></Shell></ProtectedRoute>} />
+            <Route path="/pharmacy-setup" element={<ProtectedRoute roles={["super_admin", "admin"]}><Shell><PharmacySetup /></Shell></ProtectedRoute>} />
             <Route path="/audit" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist"]}><Shell><AuditLog /></Shell></ProtectedRoute>} />
-            <Route path="/documentation" element={<ProtectedRoute><Shell><Documentation /></Shell></ProtectedRoute>} />
+            <Route path="/documentation" element={<ProtectedRoute roles={["super_admin", "admin"]}><Shell><Documentation /></Shell></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>

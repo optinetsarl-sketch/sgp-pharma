@@ -2,11 +2,12 @@
 import os
 import time
 import base64
+from datetime import date
 
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL").rstrip("/")
+BASE_URL = (os.environ.get("REACT_APP_BACKEND_URL") or "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
 
 CREDS = {
@@ -350,3 +351,30 @@ class TestReports:
         tok = login("super_admin")["access_token"]
         r = requests.get(f"{API}/dashboard", headers=hdr(tok))
         assert r.status_code == 200
+
+    def test_cashier_dashboard_privacy(self):
+        tok = login("cashier")["access_token"]
+        r = requests.get(f"{API}/dashboard", headers=hdr(tok))
+        assert r.status_code == 200
+        d = r.json()
+        assert d["ca_month"] is None, "Cashier should not see monthly CA"
+        assert d["stock_value"] is None, "Cashier should not see stock value"
+        assert "ca_today" in d
+        assert "nb_sales_today" in d
+
+    def test_cashier_sales_history_and_filters(self):
+        tok = login("cashier")["access_token"]
+        # 1. Fetch sales list
+        r = requests.get(f"{API}/sales", headers=hdr(tok))
+        assert r.status_code == 200
+        sales = r.json()
+        assert isinstance(sales, list)
+
+        # 2. Test date and month filters
+        today_iso = date.today().isoformat()
+        r_today = requests.get(f"{API}/sales", params={"date_filter": today_iso}, headers=hdr(tok))
+        assert r_today.status_code == 200
+
+        month_iso = today_iso[:7]
+        r_month = requests.get(f"{API}/sales", params={"month_filter": month_iso}, headers=hdr(tok))
+        assert r_month.status_code == 200

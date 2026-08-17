@@ -1,3 +1,4 @@
+from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException
 from datetime import date
 from database import get_db
@@ -125,9 +126,59 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
 
 
 @router.get("/sales")
-async def list_sales(limit: int = 100, user: dict = Depends(get_current_user)):
+async def list_sales(
+    date_filter: Optional[str] = None,
+    month_filter: Optional[str] = None,
+    payment_method: Optional[str] = None,
+    user_id: Optional[str] = None,
+    q: Optional[str] = None,
+    limit: int = 500,
+    user: dict = Depends(get_current_user)
+):
     db = get_db()
-    return await db.sales.find(pharmacy_scope(user), {"_id": 0}).sort("date", -1).to_list(limit)
+    query = pharmacy_scope(user)
+
+    if date_filter:
+        query["date"] = {"$regex": f"^{date_filter}"}
+    elif month_filter:
+        query["date"] = {"$regex": f"^{month_filter}"}
+
+    if payment_method and payment_method != "all":
+        query["payment_method"] = payment_method
+
+    if user_id and user_id != "all":
+        query["user_id"] = user_id
+
+    if q:
+        raw_q = q.strip()
+        clean_q = raw_q.lstrip("#").strip()
+        query["$or"] = [
+            {"customer_name": {"$regex": raw_q, "$options": "i"}},
+            {"customer_name": {"$regex": clean_q, "$options": "i"}},
+            {"id": {"$regex": clean_q, "$options": "i"}},
+            {"prescription_ref": {"$regex": clean_q, "$options": "i"}},
+        ]
+
+    sales = await db.sales.find(query, {"_id": 0}).sort("date", -1).to_list(limit)
+
+    # Enrich with users and product names
+    uids = list({s["user_id"] for s in sales if s.get("user_id")})
+    users_list = await db.users.find({"id": {"$in": uids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}).to_list(100)
+    user_map = {u["id"]: u.get("name", u.get("email", "Opérateur")) for u in users_list}
+
+    all_pids = list({it["product_id"] for s in sales for it in s.get("items", [])})
+    prods = await db.products.find({"id": {"$in": all_pids}}, {"_id": 0, "id": 1, "nom_commercial": 1, "dci": 1, "code_barre": 1}).to_list(2000)
+    prod_map = {p["id"]: p for p in prods}
+
+    for s in sales:
+        s["cashier_name"] = user_map.get(s.get("user_id"), "Caissier")
+        for it in s.get("items", []):
+            prod = prod_map.get(it["product_id"], {})
+            it["nom_commercial"] = prod.get("nom_commercial", "Médicament")
+            it["dci"] = prod.get("dci", "")
+            it["code_barre"] = prod.get("code_barre", "")
+
+    return sales
 
 
 @router.get("/sales/{sid}")

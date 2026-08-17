@@ -36,6 +36,8 @@ async def delete_category(cid: str, user: dict = Depends(require_roles("super_ad
     return {"ok": True}
 
 
+from datetime import date
+
 # Products
 @router.get("/products")
 async def list_products(q: Optional[str] = None, user: dict = Depends(get_current_user)):
@@ -48,16 +50,33 @@ async def list_products(q: Optional[str] = None, user: dict = Depends(get_curren
             {"code_barre": {"$regex": q, "$options": "i"}},
         ]}
     items = await db.products.find(query, {"_id": 0}).sort("nom_commercial", 1).to_list(2000)
-    # batch totals via aggregation (avoid N+1)
+    # batch totals and FEFO earliest non-expired batch via aggregation
     pids = [p["id"] for p in items]
     if pids:
+        today_iso = date.today().isoformat()
         agg = await db.batches.aggregate([
-            {"$match": {"product_id": {"$in": pids}, "status": "active"}},
-            {"$group": {"_id": "$product_id", "total": {"$sum": "$current_quantity"}}},
+            {"$match": {
+                "product_id": {"$in": pids},
+                "status": "active",
+                "current_quantity": {"$gt": 0},
+                "expiry_date": {"$gte": today_iso}
+            }},
+            {"$sort": {"expiry_date": 1}},
+            {"$group": {
+                "_id": "$product_id",
+                "total": {"$sum": "$current_quantity"},
+                "earliest_expiry": {"$first": "$expiry_date"},
+                "earliest_batch": {"$first": "$batch_number"},
+                "batches_count": {"$sum": 1},
+            }},
         ]).to_list(5000)
-        tot = {a["_id"]: a["total"] for a in agg}
+        tot = {a["_id"]: a for a in agg}
         for p in items:
-            p["stock_total"] = tot.get(p["id"], 0)
+            info = tot.get(p["id"], {})
+            p["stock_total"] = info.get("total", 0)
+            p["earliest_expiry"] = info.get("earliest_expiry", None)
+            p["earliest_batch"] = info.get("earliest_batch", None)
+            p["batches_count"] = info.get("batches_count", 0)
     return items
 
 

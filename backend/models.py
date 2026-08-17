@@ -19,11 +19,22 @@ RoleType = Literal["super_admin", "admin", "pharmacist", "cashier", "storekeeper
 # ---------- Pharmacy (tenant) ----------
 class PharmacyBase(BaseModel):
     name: str
+    slogan: Optional[str] = None
+    logo_data: Optional[str] = None  # Base64 image
     address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = "Togo"
     phone: Optional[str] = None
+    phone_secondary: Optional[str] = None
     email: Optional[str] = None
+    whatsapp: Optional[str] = None
+    maps_link: Optional[str] = None
     license_number: Optional[str] = None
+    nif: Optional[str] = None
+    rccm: Optional[str] = None
     currency: str = "FCFA"
+    footer_message: Optional[str] = "Merci de votre visite et prompt rétablissement !"
+    is_configured: bool = False
     active: bool = True
 
 
@@ -232,6 +243,10 @@ class PurchaseOrderRequest(BaseModel):
     supplier_id: str
     items: List[PurchaseOrderItem]
     notes: Optional[str] = None
+    target_pra_id: Optional[str] = None
+    target_pra_name: Optional[str] = None
+    target_pra_city: Optional[str] = None
+    delivery_city: Optional[str] = None
 
 
 class PurchaseOrder(BaseModel):
@@ -242,6 +257,10 @@ class PurchaseOrder(BaseModel):
     status: PurchaseOrderStatus = "draft"
     total: float = 0.0
     notes: Optional[str] = None
+    target_pra_id: Optional[str] = None
+    target_pra_name: Optional[str] = None
+    target_pra_city: Optional[str] = None
+    delivery_city: Optional[str] = None
     created_at: datetime = Field(default_factory=now_utc)
     user_id: str
 

@@ -19,20 +19,37 @@ async def dashboard(user: dict = Depends(get_current_user)):
     start_today = datetime.combine(date.today(), datetime.min.time()).replace(tzinfo=timezone.utc).isoformat()
     start_month = datetime(date.today().year, date.today().month, 1, tzinfo=timezone.utc).isoformat()
 
+    role = user.get("role")
+    is_cashier = role == "cashier"
+    is_storekeeper = role == "storekeeper"
+    is_restricted_finance = is_cashier or is_storekeeper
+
     today_sales = await db.sales.find({**scope, "date": {"$gte": start_today}}, {"_id": 0}).to_list(5000)
-    ca_today = sum(s["total_amount"] for s in today_sales)
+    ca_today = sum(s["total_amount"] for s in today_sales) if not is_storekeeper else 0
     nb_today = len(today_sales)
     nb_prescriptions_today = sum(1 for s in today_sales if s.get("prescription_ref") or s.get("prescription_image"))
 
-    month_sales = await db.sales.find({**scope, "date": {"$gte": start_month}}, {"_id": 0}).to_list(50000)
-    ca_month = sum(s["total_amount"] for s in month_sales)
+    if is_restricted_finance:
+        ca_month = 0
+        stock_value = 0
+        if is_storekeeper:
+            agg = await db.batches.aggregate([
+                {"$match": {**scope, "status": "active", "current_quantity": {"$gt": 0}}},
+                {"$group": {"_id": None, "qty": {"$sum": "$current_quantity"}}}
+            ]).to_list(1)
+            stock_qty = agg[0]["qty"] if agg else 0
+        else:
+            stock_qty = 0
+    else:
+        month_sales = await db.sales.find({**scope, "date": {"$gte": start_month}}, {"_id": 0}).to_list(50000)
+        ca_month = sum(s["total_amount"] for s in month_sales)
 
-    agg = await db.batches.aggregate([
-        {"$match": {**scope, "status": "active", "current_quantity": {"$gt": 0}}},
-        {"$group": {"_id": None, "value": {"$sum": {"$multiply": ["$current_quantity", "$purchase_price"]}}, "qty": {"$sum": "$current_quantity"}}}
-    ]).to_list(1)
-    stock_value = agg[0]["value"] if agg else 0
-    stock_qty = agg[0]["qty"] if agg else 0
+        agg = await db.batches.aggregate([
+            {"$match": {**scope, "status": "active", "current_quantity": {"$gt": 0}}},
+            {"$group": {"_id": None, "value": {"$sum": {"$multiply": ["$current_quantity", "$purchase_price"]}}, "qty": {"$sum": "$current_quantity"}}}
+        ]).to_list(1)
+        stock_value = agg[0]["value"] if agg else 0
+        stock_qty = agg[0]["qty"] if agg else 0
 
     in_30 = (date.today() + timedelta(days=30)).isoformat()
     expired = await db.batches.count_documents({**scope, "current_quantity": {"$gt": 0}, "expiry_date": {"$lt": today_iso}})
@@ -57,16 +74,23 @@ async def dashboard(user: dict = Depends(get_current_user)):
         d = date.today() - timedelta(days=i)
         d_start = datetime.combine(d, datetime.min.time()).replace(tzinfo=timezone.utc).isoformat()
         d_end = datetime.combine(d, datetime.max.time()).replace(tzinfo=timezone.utc).isoformat()
-        ds = await db.sales.find({**scope, "date": {"$gte": d_start, "$lte": d_end}}, {"_id": 0, "total_amount": 1}).to_list(5000)
-        chart.append({"date": d.isoformat(), "total": sum(s["total_amount"] for s in ds), "count": len(ds)})
+        ds = await db.sales.find({**scope, "date": {"$gte": d_start, "$lte": d_end}}, {"_id": 0, "total_amount": 1, "lines": 1}).to_list(5000)
+        qty_day = sum(sum(line.get("quantity", 0) for line in s.get("lines", [])) for s in ds)
+        chart.append({
+            "date": d.isoformat(),
+            "total": sum(s["total_amount"] for s in ds) if not is_restricted_finance else 0,
+            "count": len(ds),
+            "qty": qty_day,
+        })
 
     return {
-        "ca_today": round(ca_today, 2),
-        "ca_month": round(ca_month, 2),
+        "ca_today": round(ca_today, 2) if not is_storekeeper else None,
+        "ca_month": round(ca_month, 2) if not is_restricted_finance else None,
         "nb_sales_today": nb_today,
         "nb_prescriptions_today": nb_prescriptions_today,
-        "stock_value": round(stock_value, 2),
-        "stock_qty": stock_qty,
+        "stock_value": round(stock_value, 2) if not is_restricted_finance else None,
+        "stock_qty": stock_qty if not is_cashier else None,
+        "total_products": len(products),
         "alerts": {
             "expired": expired,
             "expiring_30": expiring_30,
@@ -139,6 +163,137 @@ async def report_margins(user: dict = Depends(require_roles("super_admin", "admi
             "margin_pct": round((margin / r["revenue"] * 100) if r["revenue"] else 0, 2),
         })
     return out
+
+
+@router.get("/reports/summary")
+async def report_summary(start: Optional[str] = None, end: Optional[str] = None, user: dict = Depends(require_roles("super_admin", "admin", "pharmacist"))):
+    db = get_db()
+    scope = pharmacy_scope(user)
+    
+    # 1. Sales filter
+    q_sales = {**scope}
+    if start:
+        q_sales["date"] = {"$gte": start}
+    if end:
+        q_sales.setdefault("date", {})["$lte"] = end + "T23:59:59"
+
+    sales = await db.sales.find(q_sales, {"_id": 0}).sort("date", -1).to_list(20000)
+    total_sales_amount = sum(s["total_amount"] for s in sales)
+    nb_sales = len(sales)
+    nb_prescriptions = sum(1 for s in sales if s.get("prescription_ref") or s.get("prescription_image"))
+
+    # Payment breakdown
+    pay_methods = {"cash": 0.0, "mobile_money": 0.0, "card": 0.0, "insurance": 0.0, "other": 0.0}
+    for s in sales:
+        pm = s.get("payment_method", "cash")
+        if pm in ["mobile_money", "tmoney", "flooz"]:
+            pay_methods["mobile_money"] += s.get("total_amount", 0)
+        elif pm == "cash":
+            pay_methods["cash"] += s.get("total_amount", 0)
+        elif pm == "card":
+            pay_methods["card"] += s.get("total_amount", 0)
+        elif pm == "insurance":
+            pay_methods["insurance"] += s.get("total_amount", 0)
+        else:
+            pay_methods["other"] += s.get("total_amount", 0)
+
+    # 2. Margins & Cost
+    pipeline_margins = [
+        {"$match": q_sales},
+        {"$unwind": "$items"},
+        {"$lookup": {"from": "batches", "localField": "items.batch_id", "foreignField": "id", "as": "batch"}},
+        {"$unwind": {"path": "$batch", "preserveNullAndEmptyArrays": True}},
+        {"$group": {
+            "_id": "$items.product_id",
+            "qty": {"$sum": "$items.quantity"},
+            "revenue": {"$sum": "$items.subtotal"},
+            "cost": {"$sum": {"$multiply": ["$items.quantity", {"$ifNull": ["$batch.purchase_price", 0]}]}},
+        }},
+        {"$sort": {"revenue": -1}},
+    ]
+    margin_rows = await db.sales.aggregate(pipeline_margins).to_list(500)
+    pids = [r["_id"] for r in margin_rows]
+    products = await db.products.find({"id": {"$in": pids}}, {"_id": 0, "id": 1, "nom_commercial": 1, "dci": 1, "forme": 1}).to_list(500)
+    pmap = {p["id"]: p for p in products}
+
+    total_cost = 0.0
+    detailed_margins = []
+    for r in margin_rows:
+        rev = r["revenue"]
+        c = r["cost"]
+        m = rev - c
+        total_cost += c
+        p_info = pmap.get(r["_id"], {})
+        detailed_margins.append({
+            "product_id": r["_id"],
+            "name": p_info.get("nom_commercial", "Médicament"),
+            "dci": p_info.get("dci", ""),
+            "forme": p_info.get("forme", ""),
+            "qty": r["qty"],
+            "revenue": round(rev, 2),
+            "cost": round(c, 2),
+            "margin": round(m, 2),
+            "margin_pct": round((m / rev * 100) if rev else 0, 2),
+        })
+
+    total_gross_margin = total_sales_amount - total_cost
+    overall_margin_pct = round((total_gross_margin / total_sales_amount * 100) if total_sales_amount else 0, 2)
+
+    # 3. Top 10 Products
+    top_10 = detailed_margins[:10]
+
+    # 4. Stock valuation & health
+    agg_stock = await db.batches.aggregate([
+        {"$match": {**scope, "status": "active", "current_quantity": {"$gt": 0}}},
+        {"$group": {"_id": None, "value": {"$sum": {"$multiply": ["$current_quantity", "$purchase_price"]}}, "qty": {"$sum": "$current_quantity"}}}
+    ]).to_list(1)
+    stock_value = agg_stock[0]["value"] if agg_stock else 0
+    stock_qty = agg_stock[0]["qty"] if agg_stock else 0
+
+    today_iso = date.today().isoformat()
+    in_30 = (date.today() + timedelta(days=30)).isoformat()
+    expired_batches = await db.batches.count_documents({**scope, "current_quantity": {"$gt": 0}, "expiry_date": {"$lt": today_iso}})
+    expiring_30_batches = await db.batches.count_documents({**scope, "current_quantity": {"$gt": 0}, "expiry_date": {"$gte": today_iso, "$lte": in_30}})
+
+    # 5. Losses summary
+    q_losses = {**scope}
+    if start:
+        q_losses["created_at"] = {"$gte": start}
+    if end:
+        q_losses.setdefault("created_at", {})["$lte"] = end + "T23:59:59"
+    losses = await db.losses.find(q_losses, {"_id": 0}).to_list(1000)
+    total_losses_qty = sum(l.get("quantity", 0) for l in losses)
+    total_losses_val = sum(l.get("loss_value", 0) for l in losses)
+
+    return {
+        "period": {"start": start, "end": end},
+        "sales": {
+            "total_revenue": round(total_sales_amount, 2),
+            "nb_sales": nb_sales,
+            "nb_prescriptions": nb_prescriptions,
+            "avg_cart": round(total_sales_amount / nb_sales, 2) if nb_sales else 0,
+            "payment_methods": {k: round(v, 2) for k, v in pay_methods.items()},
+        },
+        "profitability": {
+            "total_revenue": round(total_sales_amount, 2),
+            "total_cost": round(total_cost, 2),
+            "gross_margin": round(total_gross_margin, 2),
+            "margin_pct": overall_margin_pct,
+        },
+        "top_products": top_10,
+        "margins": detailed_margins[:30],
+        "inventory": {
+            "stock_value": round(stock_value, 2),
+            "stock_units": stock_qty,
+            "expired_batches": expired_batches,
+            "expiring_30_batches": expiring_30_batches,
+        },
+        "losses": {
+            "count": len(losses),
+            "total_units": total_losses_qty,
+            "total_value": round(total_losses_val, 2),
+        },
+    }
 
 
 # ---------- Users ----------
