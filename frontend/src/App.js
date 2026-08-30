@@ -35,11 +35,11 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Shell><Dashboard /></Shell></ProtectedRoute>} />
-            <Route path="/pos" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><POS /></Shell></ProtectedRoute>} />
+            <Route path="/pos" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier", "operator"]}><Shell><POS /></Shell></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><SalesHistory /></Shell></ProtectedRoute>} />
             <Route path="/sales-history" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><SalesHistory /></Shell></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Shell><Products /></Shell></ProtectedRoute>} />
-            <Route path="/stock" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Stock /></Shell></ProtectedRoute>} />
+            <Route path="/stock" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper", "operator"]}><Shell><Stock /></Shell></ProtectedRoute>} />
             <Route path="/reception" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Reception /></Shell></ProtectedRoute>} />
             <Route path="/orders" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Orders /></Shell></ProtectedRoute>} />
             <Route path="/suppliers" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Suppliers /></Shell></ProtectedRoute>} />
