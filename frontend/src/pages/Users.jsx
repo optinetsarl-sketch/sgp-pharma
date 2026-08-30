@@ -119,8 +119,12 @@ export default function Users() {
         return "bg-emerald-50 text-emerald-800 border-emerald-200";
       case "cashier":
         return "bg-blue-50 text-blue-800 border-blue-200";
-      default:
+      case "operator":
+        return "bg-teal-50 text-teal-800 border-teal-200";
+      case "storekeeper":
         return "bg-purple-50 text-purple-800 border-purple-200";
+      default:
+        return "bg-slate-100 text-slate-800 border-slate-200";
     }
   };
 
@@ -134,7 +138,7 @@ export default function Users() {
             Gestion des Utilisateurs & Rôles
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Création des comptes opérateurs (caissiers, pharmaciens, magasiniers) et gestion de la sécurité
+            Création des comptes opérateurs (vendeurs, caissiers, pharmaciens, magasiniers) et gestion de la sécurité
           </p>
         </div>
 
@@ -152,10 +156,11 @@ export default function Users() {
         <div className="flex items-center gap-1 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
           {[
             { id: "all", label: "Tous les rôles" },
-            { id: "admin", label: "Administrateurs" },
-            { id: "pharmacist", label: "Pharmaciens" },
+            { id: "operator", label: "Vendeurs / Saisie" },
             { id: "cashier", label: "Caissiers" },
+            { id: "pharmacist", label: "Pharmaciens" },
             { id: "storekeeper", label: "Magasiniers" },
+            { id: "admin", label: "Administrateurs" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -329,10 +334,11 @@ export default function Users() {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white"
                 >
                   {isSuperAdmin() && <option value="super_admin">{t("super_admin")} (OPTINET)</option>}
-                  <option value="admin">{t("admin")} (Gestionnaire pharmacie)</option>
-                  <option value="pharmacist">{t("pharmacist")} (Validation / Ordonnances)</option>
+                  <option value="operator">{t("operator")} (Guichet Saisie & Conseil)</option>
                   <option value="cashier">{t("cashier")} (Caisse & Vente POS)</option>
+                  <option value="pharmacist">{t("pharmacist")} (Validation / Ordonnances)</option>
                   <option value="storekeeper">{t("storekeeper")} (Réception & Magasin)</option>
+                  <option value="admin">{t("admin")} (Gestionnaire pharmacie)</option>
                 </select>
               </div>
 

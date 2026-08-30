@@ -153,6 +153,12 @@ export default function ReceiptModal({ sale, onClose }) {
               <span>Caisse: {cashierName}</span>
               <span>Règl: {getPaymentLabel(sale.payment_method)}</span>
             </div>
+            {(sale.operator_name || sale._operatorName) && (
+              <div className="flex justify-between text-teal-900 font-semibold">
+                <span>Vendeur:</span>
+                <span className="truncate">{sale.operator_name || sale._operatorName}</span>
+              </div>
+            )}
             {sale.customer_name && (
               <div className="flex justify-between text-slate-900 font-bold truncate">
                 <span>Client:</span>

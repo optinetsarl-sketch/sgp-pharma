@@ -22,6 +22,7 @@ DEMO_USERS_PHARMACY = [
     {"email": "pharmacien@sgp-pharma.tg", "name": "Dr. Komla MENSAH", "role": "pharmacist", "password": "Pharma@2026"},
     {"email": "caissier@sgp-pharma.tg", "name": "Akossiwa AGBO", "role": "cashier", "password": "Cash@2026"},
     {"email": "magasinier@sgp-pharma.tg", "name": "Yao KPATCHA", "role": "storekeeper", "password": "Store@2026"},
+    {"email": "vendeur@sgp-pharma.tg", "name": "Koffi MENSAH", "role": "operator", "password": "Vendeur@2026"},
 ]
 
 DEMO_SUPPLIERS = [
@@ -36,6 +37,30 @@ async def seed_demo():
     db = get_db()
     if os.environ.get("SEED_DEMO", "true").lower() != "true":
         return
+
+    # Ensure demo users always exist
+    first_pharmacy = await db.pharmacies.find_one({"active": True})
+    pharma_id = first_pharmacy["id"] if first_pharmacy else None
+
+    for u in DEMO_USERS_PHARMACY:
+        existing = await db.users.find_one({"email": u["email"]})
+        if not existing:
+            await db.users.insert_one({
+                "id": gen_id(),
+                "email": u["email"],
+                "name": u["name"],
+                "role": u["role"],
+                "pharmacy_id": pharma_id,
+                "active": True,
+                "password_hash": hash_password(u["password"]),
+                "created_at": now_utc().isoformat(),
+            })
+        elif pharma_id and not existing.get("pharmacy_id"):
+            await db.users.update_one(
+                {"email": u["email"]},
+                {"$set": {"pharmacy_id": pharma_id}}
+            )
+
     if await db.products.count_documents({}) > 0:
         return  # already seeded
 

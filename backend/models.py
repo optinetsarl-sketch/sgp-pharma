@@ -13,7 +13,7 @@ def gen_id() -> str:
 
 
 # ---------- Roles ----------
-RoleType = Literal["super_admin", "admin", "pharmacist", "cashier", "storekeeper"]
+RoleType = Literal["super_admin", "admin", "pharmacist", "cashier", "storekeeper", "operator"]
 
 
 # ---------- Pharmacy (tenant) ----------
@@ -191,6 +191,7 @@ class SaleRequest(BaseModel):
     customer_name: Optional[str] = None
     prescription_ref: Optional[str] = None
     prescription_image: Optional[str] = None  # base64 data URL
+    presale_id: Optional[str] = None
 
 
 class Sale(BaseModel):
@@ -203,7 +204,43 @@ class Sale(BaseModel):
     prescription_image: Optional[str] = None
     customer_name: Optional[str] = None
     user_id: str
+    operator_id: Optional[str] = None
+    operator_name: Optional[str] = None
+    presale_id: Optional[str] = None
     items: List[SaleItem]
+
+
+# ---------- Pre-sales / Operator Counter ----------
+class PresaleItemRequest(BaseModel):
+    product_id: str
+    quantity: int
+    unit_price: Optional[float] = None
+    product_name: Optional[str] = None
+
+
+class PresaleRequest(BaseModel):
+    items: List[PresaleItemRequest]
+    customer_name: Optional[str] = None
+    prescription_ref: Optional[str] = None
+    prescription_image: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class Presale(BaseModel):
+    id: str = Field(default_factory=gen_id)
+    ticket_number: str  # e.g. "PV-01", "PV-02"
+    pharmacy_id: Optional[str] = None
+    operator_id: str
+    operator_name: str
+    customer_name: Optional[str] = None
+    prescription_ref: Optional[str] = None
+    prescription_image: Optional[str] = None
+    items: List[dict]
+    total_amount: float
+    status: Literal["pending", "completed", "cancelled", "expired"] = "pending"
+    created_at: datetime = Field(default_factory=now_utc)
+    expires_at: Optional[datetime] = None
+    sale_id: Optional[str] = None
 
 
 # ---------- Losses ----------

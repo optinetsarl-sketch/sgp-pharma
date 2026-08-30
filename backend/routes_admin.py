@@ -22,17 +22,19 @@ async def dashboard(user: dict = Depends(get_current_user)):
     role = user.get("role")
     is_cashier = role == "cashier"
     is_storekeeper = role == "storekeeper"
-    is_restricted_finance = is_cashier or is_storekeeper
+    is_operator = role == "operator"
+    is_restricted_finance = is_cashier or is_storekeeper or is_operator
 
     today_sales = await db.sales.find({**scope, "date": {"$gte": start_today}}, {"_id": 0}).to_list(5000)
-    ca_today = sum(s["total_amount"] for s in today_sales) if not is_storekeeper else 0
+    ca_today = sum(s["total_amount"] for s in today_sales) if not (is_storekeeper or is_operator) else 0
     nb_today = len(today_sales)
     nb_prescriptions_today = sum(1 for s in today_sales if s.get("prescription_ref") or s.get("prescription_image"))
+    nb_presales_today = await db.presales.count_documents({**scope, "created_at": {"$gte": start_today}})
 
     if is_restricted_finance:
         ca_month = 0
         stock_value = 0
-        if is_storekeeper:
+        if is_storekeeper or is_operator:
             agg = await db.batches.aggregate([
                 {"$match": {**scope, "status": "active", "current_quantity": {"$gt": 0}}},
                 {"$group": {"_id": None, "qty": {"$sum": "$current_quantity"}}}
@@ -84,10 +86,11 @@ async def dashboard(user: dict = Depends(get_current_user)):
         })
 
     return {
-        "ca_today": round(ca_today, 2) if not is_storekeeper else None,
+        "ca_today": round(ca_today, 2) if not (is_storekeeper or is_operator) else None,
         "ca_month": round(ca_month, 2) if not is_restricted_finance else None,
         "nb_sales_today": nb_today,
         "nb_prescriptions_today": nb_prescriptions_today,
+        "nb_presales_today": nb_presales_today,
         "stock_value": round(stock_value, 2) if not is_restricted_finance else None,
         "stock_qty": stock_qty if not is_cashier else None,
         "total_products": len(products),

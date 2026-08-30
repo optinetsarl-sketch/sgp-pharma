@@ -12,11 +12,11 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import PharmacyLogo from "./PharmacyLogo";
 
 const ALL_LINKS = [
-  { to: "/", icon: LayoutDashboard, key: "nav_dashboard", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper"], shortcut: "F9" },
-  { to: "/pos", icon: ShoppingCart, key: "nav_pos", roles: ["super_admin", "admin", "pharmacist", "cashier"], shortcut: "F2", highlight: true },
+  { to: "/", icon: LayoutDashboard, key: "nav_dashboard", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper", "operator"], shortcut: "F9" },
+  { to: "/pos", icon: ShoppingCart, key: "nav_pos", roles: ["super_admin", "admin", "pharmacist", "cashier", "operator"], shortcut: "F2", highlight: true },
   { to: "/sales", icon: History, key: "nav_sales_history", roles: ["super_admin", "admin", "pharmacist", "cashier"], shortcut: "F8" },
-  { to: "/products", icon: Pill, key: "nav_products", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper"], shortcut: "F3" },
-  { to: "/stock", icon: Boxes, key: "nav_stock", roles: ["super_admin", "admin", "pharmacist", "storekeeper"] },
+  { to: "/products", icon: Pill, key: "nav_products", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper", "operator"], shortcut: "F3" },
+  { to: "/stock", icon: Boxes, key: "nav_stock", roles: ["super_admin", "admin", "pharmacist", "storekeeper", "operator"] },
   { to: "/reception", icon: PackagePlus, key: "nav_reception", roles: ["super_admin", "admin", "pharmacist", "storekeeper"], shortcut: "F4" },
   { to: "/orders", icon: ClipboardList, key: "nav_orders", roles: ["super_admin", "admin", "pharmacist", "storekeeper"] },
   { to: "/suppliers", icon: Truck, key: "nav_suppliers", roles: ["super_admin", "admin", "pharmacist", "storekeeper"] },
@@ -34,7 +34,8 @@ const ROLE_LABEL = {
   admin: "admin",
   pharmacist: "pharmacist",
   cashier: "cashier",
-  storekeeper: "storekeeper"
+  storekeeper: "storekeeper",
+  operator: "operator"
 };
 
 export default function Layout({ children }) {
@@ -76,7 +77,7 @@ export default function Layout({ children }) {
       // Don't intercept if user is typing in a textarea or modal input unless it's a function key
       if (e.key === "F2") {
         e.preventDefault();
-        if (user && ["super_admin", "admin", "pharmacist", "cashier"].includes(user.role)) {
+        if (user && ["super_admin", "admin", "pharmacist", "cashier", "operator"].includes(user.role)) {
           navigate("/pos");
         }
       } else if (e.key === "F8") {
@@ -246,9 +247,9 @@ export default function Layout({ children }) {
 
             <div className="hidden md:flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Accès rapide :</span>
-              {user && ["super_admin", "admin", "pharmacist", "cashier"].includes(user.role) && (
+              {user && ["super_admin", "admin", "pharmacist", "cashier", "operator"].includes(user.role) && (
                 <button onClick={() => navigate("/pos")} className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded font-semibold text-[11px] flex items-center gap-1">
-                  <ShoppingCart className="w-3 h-3 text-primary" /> Caisse <kbd className="bg-white px-1 rounded text-[9px] border">F2</kbd>
+                  <ShoppingCart className="w-3 h-3 text-primary" /> {user.role === "operator" ? "Guichet Saisie" : "Caisse"} <kbd className="bg-white px-1 rounded text-[9px] border">F2</kbd>
                 </button>
               )}
               <button onClick={() => navigate("/products")} className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] flex items-center gap-1">

@@ -89,6 +89,18 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
                 raise HTTPException(400, f"Stock insuffisant pour {product['nom_commercial']}")
 
         sale_id = gen_id()
+        operator_id = None
+        operator_name = None
+        if payload.presale_id:
+            presale = await db.presales.find_one({"id": payload.presale_id}, {"_id": 0})
+            if presale:
+                operator_id = presale.get("operator_id")
+                operator_name = presale.get("operator_name")
+                await db.presales.update_one(
+                    {"id": payload.presale_id},
+                    {"$set": {"status": "completed", "sale_id": sale_id, "completed_at": now_utc().isoformat()}}
+                )
+
         sale_doc = {
             "id": sale_id,
             "date": now_utc().isoformat(),
@@ -98,6 +110,9 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
             "prescription_image": payload.prescription_image,
             "customer_name": payload.customer_name,
             "user_id": user["id"],
+            "operator_id": operator_id,
+            "operator_name": operator_name,
+            "presale_id": payload.presale_id,
             "items": sale_items,
         }
         stamp_pharmacy(user, sale_doc)

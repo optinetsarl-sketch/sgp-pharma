@@ -2,11 +2,12 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Cross, Loader2, Eye, EyeOff, ShieldCheck, UserCheck, ShoppingCart, Boxes, Sparkles } from "lucide-react";
+import { Cross, Loader2, Eye, EyeOff, ShieldCheck, UserCheck, ShoppingCart, Boxes, Sparkles, ClipboardEdit } from "lucide-react";
 import { formatApiErrorDetail } from "@/lib/api";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const DEMO_ACCOUNTS = [
+  { role: "Vendeur / Saisie", email: "vendeur@sgp-pharma.tg", pass: "Vendeur@2026", icon: ClipboardEdit, color: "bg-teal-50 text-teal-700 border-teal-200" },
   { role: "Caissier", email: "caissier@sgp-pharma.tg", pass: "Cash@2026", icon: ShoppingCart, color: "bg-blue-50 text-blue-700 border-blue-200" },
   { role: "Pharmacien", email: "pharmacien@sgp-pharma.tg", pass: "Pharma@2026", icon: UserCheck, color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   { role: "Magasinier", email: "magasinier@sgp-pharma.tg", pass: "Store@2026", icon: Boxes, color: "bg-purple-50 text-purple-700 border-purple-200" },

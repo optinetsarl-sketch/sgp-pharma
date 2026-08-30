@@ -18,6 +18,7 @@ from routes_admin import router as admin_router
 from routes_pharmacies import router as pharmacies_router
 from routes_pdf import router as pdf_router
 from routes_docs import router as docs_router
+from routes_presales import router as presales_router
 from seed import seed_demo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -53,6 +54,7 @@ app.include_router(admin_router)
 app.include_router(pharmacies_router)
 app.include_router(pdf_router)
 app.include_router(docs_router)
+app.include_router(presales_router)
 
 
 @app.on_event("startup")

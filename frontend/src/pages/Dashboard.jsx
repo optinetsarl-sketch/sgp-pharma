@@ -77,6 +77,7 @@ export default function Dashboard() {
 
   const isCashier = user?.role === "cashier";
   const isStorekeeper = user?.role === "storekeeper";
+  const isOperator = user?.role === "operator";
 
   const chart = data.chart_7d.map((d) => ({
     ...d,
@@ -99,13 +100,13 @@ export default function Dashboard() {
 
         {/* Quick action buttons for operators */}
         <div className="flex items-center gap-2 flex-wrap">
-          {["super_admin", "admin", "pharmacist", "cashier"].includes(user?.role) && (
+          {["super_admin", "admin", "pharmacist", "cashier", "operator"].includes(user?.role) && (
             <button
               onClick={() => navigate("/pos")}
               className="bg-primary hover:bg-[#14532D] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md shadow-emerald-900/10 transition-all hover:-translate-y-0.5"
             >
               <ShoppingCart className="w-4 h-4" />
-              <span>Nouvelle vente (F2)</span>
+              <span>{isOperator ? "Guichet Saisie (F2)" : "Nouvelle vente (F2)"}</span>
             </button>
           )}
 
@@ -156,7 +157,54 @@ export default function Dashboard() {
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {isStorekeeper ? (
+        {isOperator ? (
+          <>
+            <StatCard
+              testid="kpi-presales-count"
+              icon={FileText}
+              tone="primary"
+              label="Paniers Pré-Vente (Jour)"
+              value={`${data.nb_presales_today || 0} paniers`}
+              sub="Préparés & transmis en caisse"
+              onClick={() => navigate("/pos")}
+            />
+            <StatCard
+              testid="kpi-stock-qty"
+              icon={Package}
+              label="Unités Disponibles"
+              value={`${data.stock_qty || 0} unités`}
+              sub="Stock physique en rayon · Voir stock →"
+              onClick={() => navigate("/stock")}
+            />
+            <StatCard
+              testid="kpi-products-count"
+              icon={Pill}
+              label="Références Produits"
+              value={`${data.total_products || "Catalogue"}`}
+              sub="Catalogue médicaments & DCI →"
+              onClick={() => navigate("/products")}
+            />
+            <div
+              onClick={() => navigate("/pos")}
+              className="border rounded-2xl p-5 shadow-xs transition-all hover:shadow-md bg-gradient-to-br from-teal-800 to-teal-950 text-white cursor-pointer group flex flex-col justify-between"
+              data-testid="kpi-pos-shortcut"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-[11px] font-bold text-teal-200 uppercase tracking-wider">Guichet Saisie</div>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/20 text-white group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <div className="font-heading font-black text-xl tracking-tight text-white flex items-center gap-1.5">
+                  <span>Préparer Panier</span>
+                  <ArrowUpRight className="w-4 h-4 text-teal-300" />
+                </div>
+                <div className="text-[11px] text-teal-200/80 mt-1 font-medium">Touche F2</div>
+              </div>
+            </div>
+          </>
+        ) : isStorekeeper ? (
           <>
             <StatCard
               testid="kpi-stock-qty"
