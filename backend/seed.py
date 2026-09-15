@@ -19,10 +19,6 @@ DEFAULT_PHARMACY = {
 
 DEMO_USERS_PHARMACY = [
     {"email": "admin@sgp-pharma.tg", "name": "Admin Pharmacie", "role": "admin", "password": "Admin@2026"},
-    {"email": "pharmacien@sgp-pharma.tg", "name": "Dr. Komla MENSAH", "role": "pharmacist", "password": "Pharma@2026"},
-    {"email": "caissier@sgp-pharma.tg", "name": "Akossiwa AGBO", "role": "cashier", "password": "Cash@2026"},
-    {"email": "magasinier@sgp-pharma.tg", "name": "Yao KPATCHA", "role": "storekeeper", "password": "Store@2026"},
-    {"email": "vendeur@sgp-pharma.tg", "name": "Koffi MENSAH", "role": "operator", "password": "Vendeur@2026"},
 ]
 
 DEMO_SUPPLIERS = [

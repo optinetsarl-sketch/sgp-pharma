@@ -4,14 +4,131 @@
  */
 
 export const TOGO_REGIONS = [
-  { id: "savanes", name: "Région des Savanes", defaultPraId: "cameg-pra-dapaong", cities: ["Dapaong", "Mango", "Cinkassé", "Tandjouaré", "Mandouri", "Kpendjal"] },
-  { id: "kara", name: "Région de la Kara", defaultPraId: "cameg-pra-kara", cities: ["Kara", "Bafilo", "Niamtougou", "Bassir", "Kanté", "Guérin-Kouka", "Kozah", "Pagouda"] },
-  { id: "centrale", name: "Région Centrale", defaultPraId: "cameg-pra-sokode", cities: ["Sokodé", "Tchamba", "Sotouboua", "Blitta", "Mô"] },
-  { id: "plateaux-est", name: "Région des Plateaux (Est)", defaultPraId: "cameg-pra-atakpame", cities: ["Atakpamé", "Anié", "Notsé", "Amlamé", "Elavagnon"] },
-  { id: "plateaux-ouest", name: "Région des Plateaux (Ouest)", defaultPraId: "cameg-pra-kpalime", cities: ["Kpalimé", "Kloto", "Agou", "Kévé", "Danyi", "Kougnohou"] },
-  { id: "maritime", name: "Région Maritime", defaultPraId: "cameg-pra-tsevie", cities: ["Tsévié", "Tabligbo", "Vogan", "Aného", "Afagnan", "Kévé"] },
-  { id: "lome", name: "Grand Lomé / Lomé Commune", defaultPraId: "cameg-lome-centrale", cities: ["Lomé", "Agoè", "Bè", "Adidogomé", "Baguida", "Aflao", "Hedzranawoé"] },
+  {
+    id: "lome",
+    name: "Grand Lomé / Lomé Commune",
+    defaultPraId: "cameg-lome-centrale",
+    cities: [
+      "Lomé",
+      "Agoè-Nyivé",
+      "Adidogomé",
+      "Bè",
+      "Baguida",
+      "Hedzranawoé",
+      "Aflao",
+      "Tokoin",
+      "Légbassito",
+      "Totsi",
+      "Amoutiévé",
+      "Agbalépédogan",
+      "Avédji",
+      "Kégué",
+      "Zanguéra",
+      "Vakpossito",
+    ],
+  },
+  {
+    id: "maritime",
+    name: "Région Maritime",
+    defaultPraId: "cameg-pra-tsevie",
+    cities: [
+      "Tsévié",
+      "Aného",
+      "Tabligbo",
+      "Vogan",
+      "Afagnan",
+      "Kévé",
+      "Djagblé",
+      "Gbatopé",
+      "Davié",
+      "Bolou",
+      "Agbélouvé",
+      "Kpémé",
+    ],
+  },
+  {
+    id: "plateaux-ouest",
+    name: "Région des Plateaux (Ouest)",
+    defaultPraId: "cameg-pra-kpalime",
+    cities: [
+      "Kpalimé",
+      "Kloto",
+      "Agou",
+      "Danyi",
+      "Badou",
+      "Kougnohou",
+      "Adéta",
+      "Kpélé",
+    ],
+  },
+  {
+    id: "plateaux-est",
+    name: "Région des Plateaux (Est)",
+    defaultPraId: "cameg-pra-atakpame",
+    cities: [
+      "Atakpamé",
+      "Anié",
+      "Notsé",
+      "Amlamé",
+      "Elavagnon",
+      "Tohoun",
+      "Wahala",
+    ],
+  },
+  {
+    id: "centrale",
+    name: "Région Centrale",
+    defaultPraId: "cameg-pra-sokode",
+    cities: [
+      "Sokodé",
+      "Tchamba",
+      "Sotouboua",
+      "Blitta",
+      "Djarkpanga (Mô)",
+      "Tchébébé",
+      "Pagala",
+    ],
+  },
+  {
+    id: "kara",
+    name: "Région de la Kara",
+    defaultPraId: "cameg-pra-kara",
+    cities: [
+      "Kara",
+      "Bafilo",
+      "Niamtougou",
+      "Bassar",
+      "Kanté",
+      "Pagouda",
+      "Guérin-Kouka",
+      "Pya",
+      "Kémérida",
+      "Kétao",
+    ],
+  },
+  {
+    id: "savanes",
+    name: "Région des Savanes",
+    defaultPraId: "cameg-pra-dapaong",
+    cities: [
+      "Dapaong",
+      "Mango",
+      "Cinkassé",
+      "Tandjouaré",
+      "Mandouri",
+      "Gando",
+      "Kpendjal",
+      "Naki-Est",
+      "Bombouaka",
+      "Barkoissi",
+    ],
+  },
 ];
+
+// Liste complète et unique de toutes les villes du Togo triées alphabétiquement
+export const ALL_TOGO_CITIES = Array.from(
+  new Set(TOGO_REGIONS.flatMap((r) => r.cities))
+).sort((a, b) => a.localeCompare(b, "fr"));
 
 export const CAMEG_PRA_LIST = [
   {
@@ -127,4 +244,18 @@ export function getNearestPra(cityOrRegion) {
     (p) => normalizeStr(p.city).includes(q) || normalizeStr(p.region).includes(q)
   );
   return directMatch || CAMEG_PRA_LIST[0];
+}
+
+/**
+ * Retrouve la région sanitaire d'une ville donnée du Togo
+ */
+export function findRegionByCity(cityName) {
+  if (!cityName) return null;
+  const q = normalizeStr(cityName);
+  for (const reg of TOGO_REGIONS) {
+    if (reg.cities.some((c) => normalizeStr(c) === q)) {
+      return reg;
+    }
+  }
+  return null;
 }

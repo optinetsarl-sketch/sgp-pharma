@@ -79,6 +79,9 @@ def step_2_compile_pyinstaller():
         except Exception:
             pass
 
+    icon_path = ROOT_DIR / "sgp_pharma.ico"
+    icon_args = ["--icon", str(icon_path)] if icon_path.exists() else []
+
     cmd = [
         str(pyinstaller_exe),
         "--noconfirm",
@@ -87,6 +90,7 @@ def step_2_compile_pyinstaller():
         "--distpath", str(DIST_DIR),
         "--workpath", str(BUILD_DIR),
         "--paths", str(BACKEND_DIR),
+        *icon_args,
         *add_data_args,
         *import_args,
         str(ROOT_DIR / "desktop_app.py")

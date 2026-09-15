@@ -253,15 +253,17 @@ export default function Users() {
                       >
                         <KeyRound className="w-3.5 h-3.5" /> Reset
                       </button>
-                      <button
-                        onClick={() => del(u)}
-                        data-testid={`delete-user-${u.id}`}
-                        aria-label="Supprimer utilisateur"
-                        className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {u.email !== "admin@sgp-pharma.tg" && (
+                        <button
+                          onClick={() => del(u)}
+                          data-testid={`delete-user-${u.id}`}
+                          aria-label="Supprimer utilisateur"
+                          className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg"
+                          title="Supprimer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

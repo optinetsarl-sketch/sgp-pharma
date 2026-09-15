@@ -375,6 +375,8 @@ async def delete_user(uid: str, user: dict = Depends(require_roles("super_admin"
     target = await db.users.find_one({"id": uid}, {"_id": 0})
     if not target:
         raise HTTPException(404, "Utilisateur introuvable")
+    if target.get("email") == "admin@sgp-pharma.tg":
+        raise HTTPException(400, "Le compte Administrateur Principal (admin@sgp-pharma.tg) ne peut pas être supprimé")
     if not is_super(user) and target.get("pharmacy_id") != user.get("pharmacy_id"):
         raise HTTPException(403, "Action non autorisée")
     await db.users.delete_one({"id": uid})

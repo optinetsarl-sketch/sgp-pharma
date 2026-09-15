@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { CAMEG_PRA_LIST, TOGO_REGIONS, getNearestPra } from "@/lib/praConfig";
+import { CAMEG_PRA_LIST, TOGO_REGIONS, ALL_TOGO_CITIES, getNearestPra, findRegionByCity } from "@/lib/praConfig";
 
 export default function PharmacySetup() {
   const { t } = useI18n();
@@ -255,16 +255,28 @@ export default function PharmacySetup() {
                 <label className="text-xs font-bold text-slate-700 block mb-1 uppercase tracking-wider">
                   Ville de Résidence
                 </label>
-                <input
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white"
+                <select
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 focus:bg-white focus:ring-1 focus:ring-primary"
                   value={form.city || ""}
                   onChange={(e) => {
                     const newCity = e.target.value;
                     const nearest = getNearestPra(newCity);
-                    setForm({ ...form, city: newCity, default_pra_id: nearest.id });
+                    const detectedRegion = findRegionByCity(newCity);
+                    setForm({
+                      ...form,
+                      city: newCity,
+                      default_pra_id: nearest.id,
+                      region: detectedRegion ? detectedRegion.name : form.region,
+                    });
                   }}
-                  placeholder="ex: Dapaong, Kara, Sokodé, Atakpamé, Kpalimé, Tsévié, Lomé..."
-                />
+                >
+                  <option value="">— Sélectionner une ville —</option>
+                  {ALL_TOGO_CITIES.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

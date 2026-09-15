@@ -1,5 +1,11 @@
+import sys
 from dotenv import load_dotenv
 from pathlib import Path
+
+# Charger .env: à côté de l'exe si déployé, cwd, puis backend/.env
+if getattr(sys, 'frozen', False):
+    load_dotenv(Path(sys.executable).parent / '.env')
+load_dotenv(Path.cwd() / '.env')
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')

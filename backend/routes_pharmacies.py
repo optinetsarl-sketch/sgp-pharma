@@ -72,6 +72,17 @@ async def update_current_pharmacy(data: PharmacyBase, user: dict = Depends(requi
     return await db.pharmacies.find_one({"id": target_id}, {"_id": 0})
 
 
+@router.get("/pharmacies/public-name")
+async def get_pharmacy_public_name():
+    """Endpoint public (sans auth) – retourne uniquement le nom de la pharmacie.
+    Utilisé par le lanceur VBS pour nommer le raccourci Bureau."""
+    db = get_db()
+    p = await db.pharmacies.find_one({}, {"_id": 0, "name": 1})
+    if not p or not p.get("name"):
+        return {"name": "SGP-Pharma"}
+    return {"name": p["name"]}
+
+
 @router.get("/pharmacies")
 async def list_pharmacies(user: dict = Depends(require_roles("super_admin", "admin", "pharmacist", "cashier", "storekeeper"))):
     db = get_db()

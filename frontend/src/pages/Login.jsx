@@ -2,25 +2,16 @@ import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Cross, Loader2, Eye, EyeOff, ShieldCheck, UserCheck, ShoppingCart, Boxes, Sparkles, ClipboardEdit } from "lucide-react";
+import { Cross, Loader2, Eye, EyeOff } from "lucide-react";
 import { formatApiErrorDetail } from "@/lib/api";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-
-const DEMO_ACCOUNTS = [
-  { role: "Vendeur / Saisie", email: "vendeur@sgp-pharma.tg", pass: "Vendeur@2026", icon: ClipboardEdit, color: "bg-teal-50 text-teal-700 border-teal-200" },
-  { role: "Caissier", email: "caissier@sgp-pharma.tg", pass: "Cash@2026", icon: ShoppingCart, color: "bg-blue-50 text-blue-700 border-blue-200" },
-  { role: "Pharmacien", email: "pharmacien@sgp-pharma.tg", pass: "Pharma@2026", icon: UserCheck, color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  { role: "Magasinier", email: "magasinier@sgp-pharma.tg", pass: "Store@2026", icon: Boxes, color: "bg-purple-50 text-purple-700 border-purple-200" },
-  { role: "Admin", email: "admin@sgp-pharma.tg", pass: "Admin@2026", icon: ShieldCheck, color: "bg-amber-50 text-amber-700 border-amber-200" },
-  { role: "Super Admin", email: "optinet@sgp-pharma.tg", pass: "Optinet@2026", icon: Sparkles, color: "bg-rose-50 text-rose-700 border-rose-200" },
-];
 
 export default function Login() {
   const { user, login } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("admin@sgp-pharma.tg");
-  const [password, setPassword] = useState("Admin@2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,12 +30,6 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickLogin = (acc) => {
-    setEmail(acc.email);
-    setPassword(acc.pass);
-    setErr("");
   };
 
   return (
@@ -103,7 +88,8 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 data-testid="login-email-input"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
-                placeholder="ex: caissier@sgp-pharma.tg"
+                placeholder="Votre adresse e-mail"
+                autoComplete="username"
               />
             </div>
 
@@ -119,6 +105,8 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   data-testid="login-password-input"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all pr-10"
+                  placeholder="Votre mot de passe"
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -151,35 +139,11 @@ export default function Login() {
               {t("sign_in")}
             </button>
           </form>
-
-          {/* Quick Demo Accounts for Operators */}
-          <div className="mt-6 bg-white/80 backdrop-blur-xs border border-slate-200/80 rounded-xl p-4 shadow-xs">
-            <div className="text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-2.5 flex items-center justify-between">
-              <span>{t("quick_login")}</span>
-              <span className="text-[10px] text-slate-400 font-normal">Cliquez pour tester un rôle</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => handleQuickLogin(acc)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 ${acc.color} ${
-                    email === acc.email ? "ring-2 ring-primary ring-offset-1" : ""
-                  }`}
-                >
-                  <acc.icon className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span className="truncate">{acc.role}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 
       <footer className="relative z-10 px-8 py-4 text-xs text-slate-400 text-center border-t border-slate-200/60 bg-white/50 print:hidden">
-        © 2026 PharmaLife Hope v1.0 · Système de Gestion de Pharmacie · Tous droits réservés
+        © 2026 SGP-Pharma v1.0 · Système de Gestion de Pharmacie · OPTINET · Tous droits réservés
       </footer>
     </div>
   );

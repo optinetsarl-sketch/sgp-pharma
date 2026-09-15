@@ -22,6 +22,16 @@ else:
     BASE_DIR = Path(__file__).resolve().parent
     APP_DIR = BASE_DIR
 
+# Charger les variables d'environnement (.env local)
+try:
+    from dotenv import load_dotenv
+    if getattr(sys, 'frozen', False):
+        load_dotenv(APP_DIR / '.env')
+    load_dotenv(Path.cwd() / '.env')
+    load_dotenv(BASE_DIR / 'backend' / '.env')
+except Exception:
+    pass
+
 # Add backend directory to sys.path
 backend_path = BASE_DIR / "backend"
 if backend_path.exists() and str(backend_path) not in sys.path:
