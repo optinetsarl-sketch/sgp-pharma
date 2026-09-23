@@ -48,7 +48,11 @@ export function AuthProvider({ children }) {
     setPharmacy(null);
   };
 
-  const hasRole = (...roles) => user && user.role && roles.includes(user.role);
+  const hasRole = (...roles) => {
+    if (!user || !user.role) return false;
+    if (user.role === "super_admin") return true;
+    return roles.includes(user.role);
+  };
   const isSuperAdmin = () => user?.role === "super_admin";
 
   return (

@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import date, timedelta
 from database import get_db
 from auth import get_current_user, require_roles, log_audit
-from tenant import pharmacy_scope, stamp_pharmacy, assert_same_pharmacy
+from tenant import pharmacy_scope, stamp_pharmacy, assert_same_pharmacy, is_super
 from models import (
     Supplier, SupplierBase, ReceptionRequest, LossRequest,
     PurchaseOrderRequest, PurchaseOrderStatus, gen_id, now_utc,
@@ -16,7 +16,21 @@ router = APIRouter(prefix="/api", tags=["inventory"])
 @router.get("/suppliers")
 async def list_suppliers(user: dict = Depends(get_current_user)):
     db = get_db()
-    return await db.suppliers.find(pharmacy_scope(user), {"_id": 0}).sort("raison_sociale", 1).to_list(500)
+    if is_super(user):
+        q = {}
+    else:
+        pid = user.get("pharmacy_id")
+        if not pid:
+            first_p = await db.pharmacies.find_one({})
+            if first_p:
+                pid = first_p["id"]
+                await db.users.update_one({"id": user["id"]}, {"$set": {"pharmacy_id": pid}})
+                user["pharmacy_id"] = pid
+        if pid:
+            q = {"$or": [{"pharmacy_id": pid}, {"pharmacy_id": None}, {"pharmacy_id": {"$exists": False}}]}
+        else:
+            q = {}
+    return await db.suppliers.find(q, {"_id": 0}).sort("raison_sociale", 1).to_list(500)
 
 
 @router.post("/suppliers")
@@ -24,10 +38,21 @@ async def create_supplier(data: SupplierBase, user: dict = Depends(require_roles
     db = get_db()
     doc = Supplier(**data.model_dump()).model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
-    stamp_pharmacy(user, doc)
+
+    # Resolve target pharmacy
+    target_pid = data.pharmacy_id or user.get("pharmacy_id")
+    if not target_pid and not is_super(user):
+        first_p = await db.pharmacies.find_one({})
+        if first_p:
+            target_pid = first_p["id"]
+            if not user.get("pharmacy_id"):
+                await db.users.update_one({"id": user["id"]}, {"$set": {"pharmacy_id": target_pid}})
+                user["pharmacy_id"] = target_pid
+
+    stamp_pharmacy(user, doc, target_pharmacy_id=target_pid)
     await db.suppliers.insert_one(doc)
     doc.pop("_id", None)
-    await log_audit(user, "supplier.create", "supplier", doc["id"])
+    await log_audit(user, "supplier.create", "supplier", doc["id"], {"raison_sociale": data.raison_sociale})
     return doc
 
 
@@ -35,9 +60,12 @@ async def create_supplier(data: SupplierBase, user: dict = Depends(require_roles
 async def update_supplier(sid: str, data: SupplierBase, user: dict = Depends(require_roles("super_admin", "admin", "pharmacist"))):
     db = get_db()
     s = await db.suppliers.find_one({"id": sid}, {"_id": 0})
+    if not s:
+        raise HTTPException(404, "Fournisseur introuvable")
     assert_same_pharmacy(user, s)
-    await db.suppliers.update_one({"id": sid}, {"$set": data.model_dump()})
-    await log_audit(user, "supplier.update", "supplier", sid)
+    upd = {k: v for k, v in data.model_dump().items() if v is not None}
+    await db.suppliers.update_one({"id": sid}, {"$set": upd})
+    await log_audit(user, "supplier.update", "supplier", sid, {"raison_sociale": data.raison_sociale})
     return await db.suppliers.find_one({"id": sid}, {"_id": 0})
 
 
@@ -45,6 +73,8 @@ async def update_supplier(sid: str, data: SupplierBase, user: dict = Depends(req
 async def delete_supplier(sid: str, user: dict = Depends(require_roles("super_admin", "admin"))):
     db = get_db()
     s = await db.suppliers.find_one({"id": sid}, {"_id": 0})
+    if not s:
+        raise HTTPException(404, "Fournisseur introuvable")
     assert_same_pharmacy(user, s)
     await db.suppliers.delete_one({"id": sid})
     await log_audit(user, "supplier.delete", "supplier", sid)

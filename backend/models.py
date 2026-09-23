@@ -106,10 +106,15 @@ class Product(ProductBase):
 # ---------- Suppliers ----------
 class SupplierBase(BaseModel):
     raison_sociale: str
+    type: Optional[str] = "grossiste"  # grossiste, centrale_achat, laboratoire, distributeur, autre
     contact: Optional[str] = None
     email: Optional[str] = None
     telephone: Optional[str] = None
     adresse: Optional[str] = None
+    delai_livraison: Optional[str] = None
+    conditions_paiement: Optional[str] = None
+    notes: Optional[str] = None
+    pharmacy_id: Optional[str] = None
 
 
 class Supplier(SupplierBase):

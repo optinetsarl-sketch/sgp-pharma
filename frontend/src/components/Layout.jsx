@@ -263,6 +263,9 @@ export default function Layout({ children }) {
                   <button onClick={() => navigate("/reception")} className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded font-semibold text-[11px] flex items-center gap-1">
                     <PackagePlus className="w-3 h-3 text-primary" /> Réception <kbd className="bg-white px-1 rounded text-[9px] border">F4</kbd>
                   </button>
+                  <button onClick={() => navigate("/suppliers")} className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[11px] flex items-center gap-1">
+                    <Truck className="w-3 h-3 text-slate-500" /> Fournisseurs
+                  </button>
                 </>
               )}
             </div>

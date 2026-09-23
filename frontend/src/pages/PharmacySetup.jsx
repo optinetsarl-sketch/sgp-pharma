@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Building2, Upload, MapPin, Phone, Mail, FileText, CheckCircle2,
-  Save, Image, ExternalLink, MessageSquare, Shield, Users, ArrowRight, X, Sparkles, Navigation
+  Save, Image, ExternalLink, MessageSquare, Shield, Users, ArrowRight, X, Sparkles, Navigation, Truck
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -111,11 +111,18 @@ export default function PharmacySetup() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={() => navigate("/suppliers")}
+            className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/80 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <Truck className="w-4 h-4 text-primary" /> Fournisseurs & Grossistes
+          </button>
           <button
             type="button"
             onClick={() => navigate("/users")}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
           >
             <Users className="w-4 h-4" /> Créer Utilisateurs / Opérateurs
           </button>

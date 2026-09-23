@@ -23,26 +23,34 @@ def pharmacy_scope(user: dict, target_pharmacy_id: str | None = None) -> dict:
 def stamp_pharmacy(user: dict, doc: dict, target_pharmacy_id: str | None = None) -> dict:
     """Attach pharmacy_id to a doc being created."""
     if is_super(user):
-        # super_admin must specify target
+        # super_admin can specify target or leave on doc (None = global/partagé)
         if target_pharmacy_id:
             doc["pharmacy_id"] = target_pharmacy_id
+        elif doc.get("pharmacy_id"):
+            pass
         elif user.get("pharmacy_id"):
             doc["pharmacy_id"] = user["pharmacy_id"]
         else:
-            raise HTTPException(status_code=400, detail="pharmacy_id requis pour super_admin")
+            doc.setdefault("pharmacy_id", None)
     else:
-        if not user.get("pharmacy_id"):
+        pid = user.get("pharmacy_id") or target_pharmacy_id or doc.get("pharmacy_id")
+        if not pid:
             raise HTTPException(status_code=403, detail="Aucune pharmacie assignée")
-        doc["pharmacy_id"] = user["pharmacy_id"]
+        doc["pharmacy_id"] = pid
     return doc
 
 
 def assert_same_pharmacy(user: dict, doc: dict | None) -> dict:
-    """Ensure the document belongs to user's pharmacy. super_admin bypasses."""
+    """Ensure the document belongs to user's pharmacy. super_admin bypasses.
+    Shared/global documents (pharmacy_id is None) can be accessed by all pharmacies."""
     if doc is None:
         raise HTTPException(status_code=404, detail="Ressource introuvable")
     if is_super(user):
         return doc
+    # Shared / global documents (None or missing) are permissible
+    if doc.get("pharmacy_id") is None:
+        return doc
     if doc.get("pharmacy_id") != user.get("pharmacy_id"):
         raise HTTPException(status_code=403, detail="Ressource non autorisée pour votre pharmacie")
     return doc
+
