@@ -85,6 +85,11 @@ async def get_current_user(request: Request) -> dict:
         if not user or not user.get("active", True):
             raise HTTPException(status_code=401, detail="User not found")
         user.pop("password_hash", None)
+        if user.get("role") != "super_admin" and not user.get("pharmacy_id"):
+            pharm = await db.pharmacies.find_one({})
+            if pharm:
+                await db.users.update_one({"id": user["id"]}, {"$set": {"pharmacy_id": pharm["id"]}})
+                user["pharmacy_id"] = pharm["id"]
         return user
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
@@ -152,6 +157,13 @@ async def login(payload: LoginRequest, request: Request, response: Response):
 
     await db.login_attempts.delete_one({"identifier": identifier})
 
+    # Auto-link non-super user to default pharmacy if missing
+    if user.get("role") != "super_admin" and not user.get("pharmacy_id"):
+        pharm = await db.pharmacies.find_one({})
+        if pharm:
+            await db.users.update_one({"id": user["id"]}, {"$set": {"pharmacy_id": pharm["id"]}})
+            user["pharmacy_id"] = pharm["id"]
+
     access = create_access_token(user["id"], user["email"], user["role"])
     refresh = create_refresh_token(user["id"])
     set_auth_cookies(response, access, refresh)
@@ -198,11 +210,12 @@ async def refresh_token(request: Request, response: Response):
 
 async def seed_admin():
     db = get_db()
-    # Super admin (OPTINET) — sees all pharmacies
+    from models import gen_id, Pharmacy
+
+    # 1. Super admin (OPTINET) — sees all pharmacies
     super_email = "optinet@sgp-pharma.tg"
     super_pwd = "Optinet@2026"
     if not await db.users.find_one({"email": super_email}):
-        from models import gen_id
         await db.users.insert_one({
             "id": gen_id(),
             "email": super_email,
@@ -214,24 +227,46 @@ async def seed_admin():
             "created_at": now_utc().isoformat(),
         })
 
-    # Legacy/default admin email kept; assigned to demo pharmacy after seed_demo runs.
+    # 2. Ensure default pharmacy exists
+    pharmacy = await db.pharmacies.find_one({})
+    if not pharmacy:
+        pharma_id = gen_id()
+        pharm_doc = Pharmacy(
+            id=pharma_id,
+            name="Pharmacie HOPE",
+            address="Lomé, Togo",
+            phone="+228 90 74 84 65",
+            email="contact@sgp-pharma.tg",
+            currency="FCFA",
+            is_configured=False,
+            active=True
+        ).model_dump()
+        pharm_doc["created_at"] = pharm_doc["created_at"].isoformat()
+        await db.pharmacies.insert_one(pharm_doc)
+    else:
+        pharma_id = pharmacy["id"]
+
+    # 3. Default pharmacy admin: must always have a valid pharmacy_id
     email = os.environ.get("ADMIN_EMAIL", "admin@sgp-pharma.tg").lower()
     password = os.environ.get("ADMIN_PASSWORD", "Admin@2026")
     existing = await db.users.find_one({"email": email})
     if not existing:
-        from models import gen_id
         await db.users.insert_one({
             "id": gen_id(),
             "email": email,
             "name": "Admin Pharmacie",
             "role": "admin",
-            "pharmacy_id": None,  # will be set during seed_demo
+            "pharmacy_id": pharma_id,
             "active": True,
             "password_hash": hash_password(password),
             "created_at": now_utc().isoformat(),
         })
-    elif not verify_password(password, existing["password_hash"]):
-        await db.users.update_one(
-            {"email": email},
-            {"$set": {"password_hash": hash_password(password)}},
-        )
+    else:
+        upd = {}
+        if not verify_password(password, existing["password_hash"]):
+            upd["password_hash"] = hash_password(password)
+        if not existing.get("pharmacy_id"):
+            upd["pharmacy_id"] = pharma_id
+        if upd:
+            await db.users.update_one({"email": email}, {"$set": upd})
+

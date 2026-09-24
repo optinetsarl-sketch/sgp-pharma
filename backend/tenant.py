@@ -10,13 +10,13 @@ def pharmacy_scope(user: dict, target_pharmacy_id: str | None = None) -> dict:
     """MongoDB filter dict scoping queries to user's pharmacy.
 
     super_admin: returns {} (sees all) unless target_pharmacy_id given.
-    others: returns {"pharmacy_id": user.pharmacy_id}; raises if missing.
+    others: returns {"pharmacy_id": user.pharmacy_id}; falls back to {} if not yet configured.
     """
     if is_super(user):
         return {"pharmacy_id": target_pharmacy_id} if target_pharmacy_id else {}
-    pid = user.get("pharmacy_id")
+    pid = user.get("pharmacy_id") or target_pharmacy_id
     if not pid:
-        raise HTTPException(status_code=403, detail="Aucune pharmacie assignée à cet utilisateur")
+        return {}
     return {"pharmacy_id": pid}
 
 
