@@ -1,6 +1,6 @@
 """
-SGP-Pharma · Launcher d'application Desktop Standalone
-Combine le Frontend React et le Backend FastAPI dans un seul exécutable Windows (.exe).
+SGP-Pharma - Launcher d'application Desktop Standalone
+Combine le Frontend React et le Backend FastAPI dans un seul executable Windows (.exe).
 """
 
 import os
@@ -13,7 +13,17 @@ import webbrowser
 from pathlib import Path
 import urllib.request
 
-# ── Chemins de base (source ou bundle PyInstaller) ──────────────────────────────
+# Configuration d'encodage console pour Windows (evite tout UnicodeEncodeError cp1252/cp850)
+if sys.platform.startswith('win'):
+    try:
+        if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+            sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
+# -- Chemins de base (source ou bundle PyInstaller) ------------------------------
 if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
     BASE_DIR = Path(sys._MEIPASS)
     APP_DIR  = Path(sys.executable).parent
@@ -21,7 +31,7 @@ else:
     BASE_DIR = Path(__file__).resolve().parent
     APP_DIR  = BASE_DIR
 
-# ── Charger les variables d'environnement (.env) ────────────────────────────────
+# -- Charger les variables d'environnement (.env) --------------------------------
 try:
     from dotenv import load_dotenv
     if getattr(sys, 'frozen', False):
@@ -31,7 +41,7 @@ try:
 except Exception:
     pass
 
-# ── Ajouter le dossier backend au sys.path ──────────────────────────────────────
+# -- Ajouter le dossier backend au sys.path --------------------------------------
 backend_path = BASE_DIR / "backend"
 if backend_path.exists() and str(backend_path) not in sys.path:
     sys.path.insert(0, str(backend_path))
@@ -44,10 +54,10 @@ logging.basicConfig(
 logger = logging.getLogger("SGP-Launcher")
 
 
-# ── Utilitaires ─────────────────────────────────────────────────────────────────
+# -- Utilitaires -----------------------------------------------------------------
 
 def find_free_port(preferred_port: int = 8000) -> int:
-    """Retourne le port préféré s'il est libre, sinon un port libre quelconque."""
+    """Retourne le port prefere s'il est libre, sinon un port libre quelconque."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         if s.connect_ex(('127.0.0.1', preferred_port)) != 0:
             return preferred_port
@@ -57,7 +67,7 @@ def find_free_port(preferred_port: int = 8000) -> int:
 
 
 def start_uvicorn_server(host: str = "127.0.0.1", port: int = 8000) -> None:
-    """Lance le serveur uvicorn (FastAPI) — destiné à tourner dans un thread daemon."""
+    """Lance le serveur uvicorn (FastAPI) - destine a tourner dans un thread daemon."""
     import uvicorn
     import server  # backend/server.py
 
@@ -72,7 +82,7 @@ def start_uvicorn_server(host: str = "127.0.0.1", port: int = 8000) -> None:
 
 
 def wait_for_server(url: str, timeout: int = 25) -> bool:
-    """Attend que le serveur FastAPI réponde sur /api/health."""
+    """Attend que le serveur FastAPI reponde sur /api/health."""
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
@@ -84,21 +94,19 @@ def wait_for_server(url: str, timeout: int = 25) -> bool:
     return False
 
 
-# ── Point d'entrée principal ─────────────────────────────────────────────────────
+# -- Point d'entree principal -----------------------------------------------------
 
 def main() -> None:
     print("=" * 60)
-    print("   SGP-PHARMA · GESTION INTÉGRÉE D'OFFICINE DE PHARMACIE")
-    print("   Démarrage de l'application...")
+    print("   SGP-PHARMA - GESTION INTEGREE D'OFFICINE DE PHARMACIE")
+    print("   Demarrage de l'application...")
     print("=" * 60)
 
     port    = find_free_port(8000)
     app_url = f"http://127.0.0.1:{port}"
-    logger.info(f"Port assigné : {port}  →  {app_url}")
+    logger.info(f"Port assigne : {port} -> {app_url}")
 
-    # ── Lancer FastAPI dans un thread daemon ────────────────────────────────────
-    # daemon=True : le thread s'arrête proprement quand le processus
-    # principal se termine (fermeture de la fenêtre ou Ctrl+C).
+    # -- Lancer FastAPI dans un thread daemon ------------------------------------
     threading.Thread(
         target=start_uvicorn_server,
         args=("127.0.0.1", port),
@@ -106,30 +114,28 @@ def main() -> None:
         name="uvicorn-server"
     ).start()
 
-    logger.info("Attente du démarrage du serveur...")
+    logger.info("Attente du demarrage du serveur...")
     if not wait_for_server(app_url, timeout=25):
-        logger.error("❌ Le serveur n'a pas pu démarrer dans le délai imparti.")
-        input("Appuyez sur Entrée pour quitter...")
+        logger.error("[ERREUR] Le serveur n'a pas pu demarrer dans le delai imparti.")
+        input("Appuyez sur Entree pour quitter...")
         return
 
-    logger.info("✅ Serveur SGP-Pharma prêt !")
+    logger.info("[OK] Serveur SGP-Pharma pret !")
 
-    # ── Ouvrir l'application dans le navigateur par défaut de Windows ───────────
-    logger.info(f"Ouverture dans le navigateur par défaut → {app_url}")
+    # -- Ouvrir l'application dans le navigateur par defaut de Windows -----------
+    logger.info(f"Ouverture dans le navigateur par defaut -> {app_url}")
     webbrowser.open(app_url)
 
-    print(f"\n  ✔  SGP-Pharma est actif sur : {app_url}")
-    print("  Le serveur reste actif tant que cette fenêtre est ouverte.")
-    print("  Pour arrêter l'application, fermez cette fenêtre ou appuyez sur Ctrl+C.\n")
+    print(f"\n  [OK] SGP-Pharma est actif sur : {app_url}")
+    print("  Le serveur reste actif tant que cette fenetre est ouverte.")
+    print("  Pour arreter l'application, fermez cette fenetre ou appuyez sur Ctrl+C.\n")
 
-    # ── Maintenir le processus principal en vie ─────────────────────────────────
-    # CRITIQUE : sans cette boucle, le thread daemon (uvicorn) serait
-    # détruit immédiatement après webbrowser.open() et le serveur s'arrêterait.
+    # -- Maintenir le processus principal en vie ---------------------------------
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        logger.info("Arrêt demandé par l'utilisateur.")
+        logger.info("Arret demande par l'utilisateur.")
 
 
 if __name__ == "__main__":
