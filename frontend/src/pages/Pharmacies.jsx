@@ -69,7 +69,7 @@ export default function Pharmacies() {
         <div>
           <div className="label-tiny mb-1 text-primary font-bold">ARCHITECTURE SAAS · MULTI-TENANTS</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Pharmacies & Officines
+            Pharmacies et Officines
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Gestion centralisée des officines affiliées et isolation stricte des données

@@ -217,9 +217,9 @@ export default function Stock() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="label-tiny mb-1 text-primary font-bold">{t("nav_stock")} · INVENTAIRE & TRAÇABILITÉ</div>
+          <div className="label-tiny mb-1 text-primary font-bold">{t("nav_stock")} · INVENTAIRE ET TRAÇABILITÉ</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Stock & Lots (FEFO)
+            Stock et Lots (FEFO)
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Gestion et consultation par <strong>Numéro de Lot</strong> avec liste détaillée des médicaments associés
@@ -495,7 +495,7 @@ export default function Stock() {
                     <div className="border-t border-slate-200/80 bg-slate-50/40 p-4 sm:p-5">
                       <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-1.5">
                         <Pill className="w-3.5 h-3.5 text-primary" />
-                        <span>Médicaments & Articles enregistrés sous le lot {group.batch_number} :</span>
+                        <span>Médicaments et Articles enregistrés sous le lot {group.batch_number} :</span>
                       </div>
 
                       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
@@ -642,7 +642,7 @@ export default function Stock() {
                       )}
                     </div>
                   </th>
-                  <th className="px-4 py-3">Priorité FEFO</th>
+                  <th className="px-4 py-3 hidden md:table-cell">Priorité FEFO</th>
                   <th
                     onClick={() => toggleSort("quantity")}
                     className="px-4 py-3 text-right cursor-pointer hover:text-primary transition-colors"
@@ -656,9 +656,13 @@ export default function Stock() {
                       )}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-right">{t("purchase_price")}</th>
-                  <th className="px-4 py-3">{t("status")}</th>
-                  {hasRole("admin", "pharmacist") && <th className="px-4 py-3 text-right">{t("actions")}</th>}
+                  <th className="px-4 py-3 text-right hidden lg:table-cell">{t("purchase_price")}</th>
+                  <th className="px-4 py-3 hidden sm:table-cell">{t("status")}</th>
+                  {hasRole("admin", "pharmacist") && (
+                    <th className="px-4 py-3 text-right sticky right-0 bg-slate-100/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10">
+                      {t("actions")}
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -681,7 +685,7 @@ export default function Stock() {
                           const grp = groupedByLot.find((g) => g.batch_number === b.batch_number);
                           if (grp) setSelectedLotModal(grp);
                         }}
-                        className="hover:bg-slate-50/80 transition-colors cursor-pointer"
+                        className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
                         data-testid={`batch-row-${b.id}`}
                       >
                         <td className="px-4 py-3 font-mono text-xs font-bold text-slate-900 bg-emerald-50/20">
@@ -691,7 +695,7 @@ export default function Stock() {
                         </td>
 
                         <td className="px-4 py-3 font-bold text-slate-900">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             <span className={isRx ? "text-red-950 font-bold" : ""}>{b.product_name}</span>
                             {isRx && (
                               <span className="text-[9px] bg-red-600 text-white font-extrabold px-1.5 py-0.2 rounded shadow-2xs">
@@ -699,27 +703,30 @@ export default function Stock() {
                               </span>
                             )}
                           </div>
+                          <div className="md:hidden mt-0.5">
+                            <FEFOBadge expiryDate={b.expiry_date} compact />
+                          </div>
                         </td>
 
-                        <td className="px-4 py-3 font-medium text-slate-700">
+                        <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">
                           {b.expiry_date}
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 hidden md:table-cell">
                           <FEFOBadge expiryDate={b.expiry_date} />
                         </td>
 
-                        <td className="px-4 py-3 text-right font-mono font-black text-sm">
+                        <td className="px-4 py-3 text-right font-mono font-black text-sm whitespace-nowrap">
                           <span className={b.current_quantity === 0 ? "text-slate-400" : "text-emerald-900"}>
                             {b.current_quantity}
                           </span>
                         </td>
 
-                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-600">
+                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-600 hidden lg:table-cell whitespace-nowrap">
                           {formatXOF(b.purchase_price)}
                         </td>
 
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 hidden sm:table-cell">
                           <span
                             className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                               b.status === "active"
@@ -734,7 +741,7 @@ export default function Stock() {
                         </td>
 
                         {hasRole("admin", "pharmacist") && (
-                          <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <td className="px-4 py-3 text-right sticky right-0 bg-white/95 backdrop-blur-xs group-hover:bg-slate-50/95 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                             {b.status === "active" && (
                               <button
                                 onClick={() => block(b)}
@@ -787,7 +794,7 @@ export default function Stock() {
             </div>
 
             {/* Quick Metrics in Modal */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/80">
                 <div className="text-[10px] font-bold text-slate-400 uppercase">Stock total du lot</div>
                 <div className="font-mono font-black text-base text-emerald-900 mt-0.5">

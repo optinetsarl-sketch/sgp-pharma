@@ -60,35 +60,25 @@ async def seed_demo():
     if await db.products.count_documents({}) > 0:
         return  # already seeded
 
-    # 1) Default pharmacy
-    pharmacy_id = gen_id()
-    await db.pharmacies.insert_one({
-        "id": pharmacy_id,
-        **DEFAULT_PHARMACY,
-        "created_at": now_utc().isoformat(),
-    })
+    # 1) Reuse the pharmacy already created by seed_admin (avoid duplicate)
+    existing_pharmacy = await db.pharmacies.find_one({"active": True})
+    if existing_pharmacy:
+        pharmacy_id = existing_pharmacy["id"]
+    else:
+        pharmacy_id = gen_id()
+        await db.pharmacies.insert_one({
+            "id": pharmacy_id,
+            **DEFAULT_PHARMACY,
+            "created_at": now_utc().isoformat(),
+        })
 
-    # 2) Pharmacy users (admin/pharmacist/cashier/storekeeper)
+    # Make sure all DEMO_USERS_PHARMACY are linked to this pharmacy
     for u in DEMO_USERS_PHARMACY:
-        existing = await db.users.find_one({"email": u["email"]})
-        if existing:
-            # Attach existing user to demo pharmacy if not already
-            if not existing.get("pharmacy_id"):
-                await db.users.update_one(
-                    {"email": u["email"]},
-                    {"$set": {"pharmacy_id": pharmacy_id}}
-                )
-        else:
-            await db.users.insert_one({
-                "id": gen_id(),
-                "email": u["email"],
-                "name": u["name"],
-                "role": u["role"],
-                "pharmacy_id": pharmacy_id,
-                "active": True,
-                "password_hash": hash_password(u["password"]),
-                "created_at": now_utc().isoformat(),
-            })
+        await db.users.update_one(
+            {"email": u["email"]},
+            {"$set": {"pharmacy_id": pharmacy_id}},
+        )
+
 
     # 3) Categories (scoped to pharmacy)
     cat_map = {}
@@ -104,9 +94,7 @@ async def seed_demo():
         await db.suppliers.insert_one({**s, "id": sid, "pharmacy_id": pharmacy_id, "created_at": now_utc().isoformat()})
         sup_ids.append(sid)
 
-    # 5) Products + 2 batches each
-    today = date.today()
-    expiry_cycle = [25, 60, 100, 150, 200, 280, 350, 420, 500]
+    # 5) Products only (WITHOUT batches/quantities - stock starts at 0)
     for idx, (code, name, dci, forme, cat, seuil, presc, prix) in enumerate(CAMEG_PRODUCTS):
         pid = gen_id()
         await db.products.insert_one({
@@ -122,51 +110,4 @@ async def seed_demo():
             "prix_vente": prix,
             "created_at": now_utc().isoformat(),
         })
-        purchase_price = round(prix * 0.65, 2)
-        days_1 = expiry_cycle[idx % len(expiry_cycle)]
-        days_2 = days_1 + 365
-        for bnum, days, qty in [(f"L{idx:03d}A", days_1, 80), (f"L{idx:03d}B", days_2, 120)]:
-            bid = gen_id()
-            await db.batches.insert_one({
-                "id": bid,
-                "pharmacy_id": pharmacy_id,
-                "product_id": pid,
-                "batch_number": bnum,
-                "expiry_date": (today + timedelta(days=days)).isoformat(),
-                "purchase_price": purchase_price,
-                "initial_quantity": qty,
-                "current_quantity": qty,
-                "status": "active",
-                "supplier_id": sup_ids[idx % len(sup_ids)],
-                "received_at": now_utc().isoformat(),
-            })
-            await db.stock_movements.insert_one({
-                "id": gen_id(),
-                "pharmacy_id": pharmacy_id,
-                "batch_id": bid,
-                "product_id": pid,
-                "type": "ENTREE_ACHAT",
-                "quantity": qty,
-                "created_at": now_utc().isoformat(),
-                "user_id": None,
-                "reference_id": None,
-                "notes": "Seed initial",
-            })
 
-    # 6) One expired batch on Paracétamol 500mg for demo alert
-    para = await db.products.find_one({"nom_commercial": "Paracétamol 500mg"}, {"_id": 0, "id": 1})
-    if para:
-        bid = gen_id()
-        await db.batches.insert_one({
-            "id": bid,
-            "pharmacy_id": pharmacy_id,
-            "product_id": para["id"],
-            "batch_number": "LEXP01",
-            "expiry_date": (today - timedelta(days=10)).isoformat(),
-            "purchase_price": 300,
-            "initial_quantity": 30,
-            "current_quantity": 30,
-            "status": "active",
-            "supplier_id": sup_ids[0],
-            "received_at": now_utc().isoformat(),
-        })

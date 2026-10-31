@@ -38,7 +38,7 @@ export default function AuditLog() {
         <div>
           <div className="label-tiny mb-1 text-primary font-bold">{t("nav_audit")} · TRAÇABILITÉ RÉGLEMENTAIRE</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Journal d'Audit & Sécurité
+            Journal d'Audit et Sécurité
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Enregistrement immuable de toutes les opérations sensibles (ventes, réceptions, annulations, créations)

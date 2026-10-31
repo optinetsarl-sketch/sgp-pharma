@@ -135,7 +135,7 @@ export default function Users() {
         <div>
           <div className="label-tiny mb-1 text-primary font-bold">{t("nav_users")} · CONTRÔLE D'ACCÈS RBAC</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Gestion des Utilisateurs & Rôles
+            Gestion des Utilisateurs et Rôles
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Création des comptes opérateurs (vendeurs, caissiers, pharmaciens, magasiniers) et gestion de la sécurité
@@ -194,11 +194,11 @@ export default function Users() {
             <thead className="bg-slate-100/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">{t("name")}</th>
-                <th className="px-4 py-3">{t("email")}</th>
+                <th className="px-4 py-3 hidden sm:table-cell">{t("email")}</th>
                 <th className="px-4 py-3">{t("role")}</th>
-                {isSuperAdmin() && <th className="px-4 py-3">Pharmacie</th>}
+                {isSuperAdmin() && <th className="px-4 py-3 hidden md:table-cell">Pharmacie</th>}
                 <th className="px-4 py-3">{t("active")}</th>
-                <th className="px-4 py-3 text-right">{t("actions")}</th>
+                <th className="px-4 py-3 text-right sticky right-0 bg-slate-100/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10">{t("actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -212,24 +212,25 @@ export default function Users() {
               )}
 
               {filteredUsers.map((u) => (
-                <tr key={u.id} className="hover:bg-slate-50/70 transition-colors" data-testid={`user-row-${u.id}`}>
+                <tr key={u.id} className="hover:bg-slate-50/70 transition-colors group" data-testid={`user-row-${u.id}`}>
                   <td className="px-4 py-3 font-bold text-slate-900">
-                    {u.name}
+                    <div>{u.name}</div>
+                    <div className="sm:hidden font-mono text-[10px] text-slate-500 font-normal">{u.email}</div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-slate-600">
+                  <td className="px-4 py-3 font-mono text-slate-600 hidden sm:table-cell">
                     {u.email}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getRoleBadge(u.role)}`}>
                       {t(u.role)}
                     </span>
                   </td>
                   {isSuperAdmin() && (
-                    <td className="px-4 py-3 text-slate-600 font-semibold">
+                    <td className="px-4 py-3 text-slate-600 font-semibold hidden md:table-cell">
                       {phName(u.pharmacy_id)}
                     </td>
                   )}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <button
                       onClick={() => toggle(u)}
                       data-testid={`toggle-user-${u.id}`}
@@ -242,7 +243,7 @@ export default function Users() {
                       {u.active ? "Actif" : "Inactif"}
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right sticky right-0 bg-white/95 backdrop-blur-xs group-hover:bg-slate-50/95 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => resetPassword(u)}
@@ -336,10 +337,10 @@ export default function Users() {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white"
                 >
                   {isSuperAdmin() && <option value="super_admin">{t("super_admin")} (OPTINET)</option>}
-                  <option value="operator">{t("operator")} (Guichet Saisie & Conseil)</option>
-                  <option value="cashier">{t("cashier")} (Caisse & Vente POS)</option>
+                  <option value="operator">{t("operator")} (Guichet Saisie et Conseil)</option>
+                  <option value="cashier">{t("cashier")} (Caisse et Vente POS)</option>
                   <option value="pharmacist">{t("pharmacist")} (Validation / Ordonnances)</option>
-                  <option value="storekeeper">{t("storekeeper")} (Réception & Magasin)</option>
+                  <option value="storekeeper">{t("storekeeper")} (Réception et Magasin)</option>
                   <option value="admin">{t("admin")} (Gestionnaire pharmacie)</option>
                 </select>
               </div>

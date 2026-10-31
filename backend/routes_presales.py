@@ -27,6 +27,61 @@ async def create_presale(payload: PresaleRequest, user: dict = Depends(require_r
         if it.quantity <= 0:
             raise HTTPException(400, "Quantité invalide")
 
+        act = None
+        if it.is_act or (it.product_id and it.product_id.startswith("act_")):
+            act = await db.medical_acts.find_one({"id": it.product_id}, {"_id": 0})
+        elif it.product_id:
+            act = await db.medical_acts.find_one({"id": it.product_id}, {"_id": 0})
+
+        if act or it.is_act:
+            if act:
+                assert_same_pharmacy(user, act)
+            act_name = it.act_name or (act.get("name") if act else "Acte Médical")
+            unit_price = it.unit_price if it.unit_price is not None else (act.get("price", 0.0) if act else 0.0)
+            sub = round(it.quantity * unit_price, 2)
+            total += sub
+            items_detail.append({
+                "product_id": it.product_id,
+                "product_name": act_name,
+                "code_barre": "ACTE",
+                "dci": "Prestation de soins",
+                "quantity": it.quantity,
+                "unit_price": unit_price,
+                "subtotal": sub,
+                "requires_prescription": False,
+                "is_act": True,
+                "act_name": act_name,
+            })
+            continue
+
+        # Check laboratory exam
+        lab = None
+        if it.is_lab or (it.product_id and (it.product_id.startswith("lab_") or it.product_id.startswith("LAB-"))):
+            lab = await db.lab_exams.find_one({"id": it.product_id}, {"_id": 0})
+        elif it.product_id:
+            lab = await db.lab_exams.find_one({"id": it.product_id}, {"_id": 0})
+
+        if lab or it.is_lab:
+            if lab:
+                assert_same_pharmacy(user, lab)
+            lab_name = it.lab_name or (lab.get("name") if lab else "Examen de Laboratoire")
+            unit_price = it.unit_price if it.unit_price is not None else (lab.get("price", 0.0) if lab else 0.0)
+            sub = round(it.quantity * unit_price, 2)
+            total += sub
+            items_detail.append({
+                "product_id": it.product_id,
+                "product_name": lab_name,
+                "code_barre": "LAB",
+                "dci": "Examen de Laboratoire",
+                "quantity": it.quantity,
+                "unit_price": unit_price,
+                "subtotal": sub,
+                "requires_prescription": False,
+                "is_lab": True,
+                "lab_name": lab_name,
+            })
+            continue
+
         product = await db.products.find_one({"id": it.product_id}, {"_id": 0})
         if not product:
             raise HTTPException(404, f"Produit {it.product_id} non trouvé")

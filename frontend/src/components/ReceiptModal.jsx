@@ -177,17 +177,21 @@ export default function ReceiptModal({ sale, onClose }) {
           <div className="py-1.5 space-y-1 border-b border-dashed border-slate-400">
             {items.map((item, idx) => {
               const prod = item.product || item;
-              const name = prod.nom_commercial || prod.product_name || "Médicament";
+              const isAct = prod.is_act || item.is_act;
+              const isLab = prod.is_lab || item.is_lab;
+              const name = prod.nom_commercial || prod.product_name || prod.act_name || prod.lab_name || (isAct ? "Acte Médical" : isLab ? "Analyse Labo" : "Médicament");
               const qty = item.quantity || 1;
               const price = item.unit_price || prod.prix_vente || 0;
               const subtotal = item.subtotal || qty * price;
-              const isRx = prod.requires_prescription || item.requires_prescription;
+              const isRx = !isAct && !isLab && (prod.requires_prescription || item.requires_prescription);
 
               return (
                 <div key={idx} className="flex justify-between items-baseline text-[11px]">
                   <div className="truncate flex-1 pr-2">
                     <span className="font-semibold">{qty}x </span>
                     <span>{name}</span>
+                    {isAct && <span className="text-emerald-700 font-bold text-[9px] ml-1">[🩺Acte]</span>}
+                    {isLab && <span className="text-indigo-700 font-bold text-[9px] ml-1">[🔬Lab]</span>}
                     {isRx && <span className="text-red-700 font-bold text-[9px] ml-1">[🔴Rx]</span>}
                   </div>
                   <span className="font-bold font-mono text-right flex-shrink-0">

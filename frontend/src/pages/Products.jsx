@@ -3,10 +3,11 @@ import api, { formatXOF, formatApiErrorDetail } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Plus, Pencil, Trash2, Search, X, Pill, AlertTriangle, CheckCircle, PackageX, FileText, Filter, Sparkles
+  Plus, Pencil, Trash2, Search, X, Pill, AlertTriangle, CheckCircle, Check, PackageX, FileText, Filter, Sparkles, Zap, Barcode, Printer, Tags, FolderPlus
 } from "lucide-react";
 import { toast } from "sonner";
 import SearchableSelect from "@/components/SearchableSelect";
+import BarcodeSvg, { getBarcodeSvgHtml } from "@/components/BarcodeSvg";
 
 const DEFAULT_PHARMACEUTICAL_FORMS = [
   "Comprimé",
@@ -119,8 +120,123 @@ export default function Products() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(empty);
+  const [generatingCode, setGeneratingCode] = useState(false);
+
+  // Quick Barcode Modal State
+  const [barcodeProduct, setBarcodeProduct] = useState(null);
+  const [barcodeVal, setBarcodeVal] = useState("");
+  const [barcodeSaving, setBarcodeSaving] = useState(false);
+  const [barcodeGenLoading, setBarcodeGenLoading] = useState(false);
+  const [pharmacyInfo, setPharmacyInfo] = useState(null);
+
+  // Category Management Modal State
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [catSaving, setCatSaving] = useState(false);
+  const [editingCatId, setEditingCatId] = useState(null);
+  const [editingCatName, setEditingCatName] = useState("");
+  const [catSearch, setCatSearch] = useState("");
 
   const canEdit = hasRole("admin", "pharmacist");
+
+  const startEditCategory = (cat) => {
+    setEditingCatId(cat.id);
+    setEditingCatName(cat.name);
+  };
+
+  const cancelEditCategory = () => {
+    setEditingCatId(null);
+    setEditingCatName("");
+  };
+
+  const handleSaveCategoryName = async (catId) => {
+    const trimmed = editingCatName.trim();
+    if (!trimmed) {
+      toast.error("Le nom de la catégorie ne peut pas être vide");
+      return;
+    }
+    try {
+      await api.put(`/categories/${catId}`, { name: trimmed });
+      setCats((prev) => prev.map((c) => (c.id === catId ? { ...c, name: trimmed } : c)));
+      setEditingCatId(null);
+      setEditingCatName("");
+      toast.success(`Catégorie renommée en "${trimmed}" !`);
+      reload();
+    } catch (err) {
+      toast.error(formatApiErrorDetail(err.response?.data?.detail) || "Erreur de modification");
+    }
+  };
+
+  const loadCategories = () => {
+    api.get("/categories").then((r) => setCats(r.data || [])).catch(() => {});
+  };
+
+  const handleCategoryChange = async (val) => {
+    if (!val) {
+      setForm((prev) => ({ ...prev, categorie_id: "" }));
+      return;
+    }
+    const existing = cats.find((c) => c.id === val || c.name.toLowerCase() === val.toLowerCase());
+    if (existing) {
+      setForm((prev) => ({ ...prev, categorie_id: existing.id }));
+    } else {
+      // User typed a new custom category name!
+      try {
+        const res = await api.post("/categories", { name: val.trim() });
+        const createdCat = res.data;
+        setCats((prev) => [...prev, createdCat]);
+        setForm((prev) => ({ ...prev, categorie_id: createdCat.id }));
+        toast.success(`Nouvelle catégorie créée : "${createdCat.name}"`);
+      } catch (err) {
+        toast.error(formatApiErrorDetail(err.response?.data?.detail) || "Erreur de création");
+      }
+    }
+  };
+
+  const handleAddCategory = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const trimmed = (newCatName || "").trim();
+    if (!trimmed) {
+      toast.error("Veuillez saisir le nom de la catégorie");
+      return;
+    }
+    if (cats.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
+      toast.error(`La catégorie "${trimmed}" existe déjà`);
+      return;
+    }
+    setCatSaving(true);
+    try {
+      const res = await api.post("/categories", { name: trimmed });
+      setCats((prev) => [...prev, res.data]);
+      setNewCatName("");
+      setIsAddingCategory(false);
+      toast.success(`Catégorie "${trimmed}" ajoutée avec succès !`);
+      reload();
+    } catch (err) {
+      toast.error(formatApiErrorDetail(err.response?.data?.detail) || "Erreur d'ajout de la catégorie");
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (cat) => {
+    const productsInCat = items.filter((p) => p.categorie_id === cat.id);
+    let msg = `Confirmer la suppression définitive de la catégorie "${cat.name}" ?`;
+    if (productsInCat.length > 0) {
+      msg = `Attention : ${productsInCat.length} produit(s) sont classés dans "${cat.name}".\n\nConfirmer la suppression ? (Ces produits n'auront plus de catégorie)`;
+    }
+    if (!window.confirm(msg)) return;
+    try {
+      await api.delete(`/categories/${cat.id}`);
+      setCats((prev) => prev.filter((c) => c.id !== cat.id));
+      setItems((prev) => prev.map((p) => (p.categorie_id === cat.id ? { ...p, categorie_id: null } : p)));
+      if (categoryFilter === cat.id) setCategoryFilter("");
+      toast.success(`Catégorie "${cat.name}" supprimée.`);
+    } catch (err) {
+      toast.error(formatApiErrorDetail(err.response?.data?.detail) || "Erreur de suppression");
+    }
+  };
 
   // Dynamic available forms list (standard forms + existing database forms)
   const availableForms = useMemo(() => {
@@ -153,6 +269,7 @@ export default function Products() {
   useEffect(() => {
     reload();
     api.get("/categories").then((r) => setCats(r.data || [])).catch(() => {});
+    api.get("/pharmacy/current").then((r) => setPharmacyInfo(r.data)).catch(() => {});
   }, [q]);
 
   const startNew = () => {
@@ -167,11 +284,187 @@ export default function Products() {
     setShowForm(true);
   };
 
+  const generateBarcode = async () => {
+    setGeneratingCode(true);
+    try {
+      const r = await api.get("/products/generate-barcode");
+      setForm((prev) => ({ ...prev, code_barre: r.data.code_barre }));
+    } catch (err) {
+      toast.error(formatApiErrorDetail(err.response?.data?.detail));
+    } finally {
+      setGeneratingCode(false);
+    }
+  };
+
+  const openBarcodeModal = (p) => {
+    setBarcodeProduct(p);
+    setBarcodeVal(p.code_barre || "");
+  };
+
+  const handleGenerateInModal = async () => {
+    setBarcodeGenLoading(true);
+    try {
+      const r = await api.get("/products/generate-barcode");
+      setBarcodeVal(r.data.code_barre);
+    } catch (err) {
+      toast.error(formatApiErrorDetail(err.response?.data?.detail));
+    } finally {
+      setBarcodeGenLoading(false);
+    }
+  };
+
+  const handleSaveBarcode = async () => {
+    if (!barcodeProduct) return;
+    setBarcodeSaving(true);
+    try {
+      const updated = {
+        ...barcodeProduct,
+        code_barre: (barcodeVal || "").trim(),
+      };
+      await api.put(`/products/${barcodeProduct.id}`, updated);
+      toast.success("Code-barre enregistré avec succès !");
+      setBarcodeProduct(null);
+      reload();
+    } catch (err) {
+      toast.error(formatApiErrorDetail(err.response?.data?.detail));
+    } finally {
+      setBarcodeSaving(false);
+    }
+  };
+
+  const handlePrintLabel = (onlyBarcode = false) => {
+    if (!barcodeProduct) return;
+    const printWindow = window.open("", "_blank", "width=420,height=520");
+    if (!printWindow) {
+      toast.error("Veuillez autoriser les fenêtres pop-up pour imprimer l'étiquette");
+      return;
+    }
+    const pharmName = pharmacyInfo?.name || "PHARMACIE";
+    const prodName = barcodeProduct.nom_commercial;
+    const dci = barcodeProduct.dci || "";
+    const forme = barcodeProduct.forme_pharmaceutique || "";
+    const price = formatXOF(barcodeProduct.prix_vente);
+    const code = (barcodeVal || barcodeProduct.code_barre || "").trim();
+    const barcodeSvgHtml = getBarcodeSvgHtml(code, 48);
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Étiquette - ${prodName}</title>
+          <style>
+            @page { size: auto; margin: 3mm; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              margin: 0;
+              padding: 4px;
+              color: #000;
+              background: #fff;
+              text-align: center;
+              width: 58mm;
+              max-width: 100%;
+            }
+            .label-card {
+              border: 1px solid #000;
+              border-radius: 6px;
+              padding: 6px 4px;
+              background: #fff;
+              margin: 0 auto;
+            }
+            .header {
+              font-size: 8px;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 0.6px;
+              border-bottom: 1px dashed #555;
+              padding-bottom: 3px;
+              margin-bottom: 4px;
+            }
+            .title {
+              font-size: 11px;
+              font-weight: 900;
+              line-height: 1.2;
+              margin: 2px 0;
+              word-break: break-word;
+            }
+            .sub {
+              font-size: 8px;
+              color: #222;
+              margin-bottom: 4px;
+            }
+            .price {
+              font-size: 13px;
+              font-weight: 900;
+              margin: 4px 0;
+              padding: 2px 0;
+              border-top: 1px solid #000;
+              border-bottom: 1px solid #000;
+            }
+            .barcode-box {
+              margin-top: 4px;
+              padding: 2px 0;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            .barcode-only-card {
+              border: 1px solid #000;
+              border-radius: 6px;
+              padding: 8px 4px;
+              background: #fff;
+              display: inline-block;
+              margin: 0 auto;
+            }
+            svg {
+              display: block;
+              margin: 0 auto;
+              max-width: 100%;
+              height: auto;
+            }
+          </style>
+        </head>
+        <body>
+          ${onlyBarcode ? `
+            <div class="barcode-only-card">
+              ${barcodeSvgHtml}
+            </div>
+          ` : `
+            <div class="label-card">
+              <div class="header">${pharmName}</div>
+              <div class="title">${prodName}</div>
+              ${dci || forme ? `<div class="sub">${[forme, dci].filter(Boolean).join(" · ")}</div>` : ""}
+              <div class="price">${price}</div>
+              <div class="barcode-box">
+                ${barcodeSvgHtml}
+              </div>
+            </div>
+          `}
+          <script>
+            function triggerPrint() {
+              window.print();
+              setTimeout(function() { window.close(); }, 600);
+            }
+            if (document.readyState === 'complete') {
+              triggerPrint();
+            } else {
+              window.addEventListener('load', triggerPrint);
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const save = async (e) => {
     e.preventDefault();
     try {
       const payload = {
         ...form,
+        code_barre: (form.code_barre || "").trim(),
         seuil_alerte_stock: parseInt(form.seuil_alerte_stock) || 0,
         prix_vente: parseFloat(form.prix_vente) || 0,
         categorie_id: form.categorie_id || null,
@@ -232,7 +525,7 @@ export default function Products() {
         <div>
           <div className="label-tiny mb-1 text-primary font-bold">{t("nav_products")} · CATALOGUE OFFICINE</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Médicaments & Produits
+            Médicaments et Produits
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             {stats.total} références enregistrées (Nomenclature CAMEG Togo)
@@ -322,16 +615,29 @@ export default function Products() {
 
         <div className="w-full md:w-auto flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 min-w-[220px]">
           <Filter className="w-3.5 h-3.5 text-slate-400 hidden sm:block flex-shrink-0" />
-          <SearchableSelect
-            value={categoryFilter}
-            onChange={(val) => setCategoryFilter(val)}
-            placeholder="Toutes les catégories"
-            searchPlaceholder="Filtrer catégorie..."
-            options={[
-              { value: "", label: "Toutes les catégories" },
-              ...cats.map((c) => ({ value: c.id, label: c.name })),
-            ]}
-          />
+          <div className="flex-1 min-w-[180px]">
+            <SearchableSelect
+              value={categoryFilter}
+              onChange={(val) => setCategoryFilter(val)}
+              placeholder="Toutes les catégories"
+              searchPlaceholder="Filtrer catégorie..."
+              options={[
+                { value: "", label: "Toutes les catégories" },
+                ...cats.map((c) => ({ value: c.id, label: c.name })),
+              ]}
+            />
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => setShowCatModal(true)}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 flex-shrink-0 hover:scale-[1.02] active:scale-[0.98]"
+              title="Gérer les catégories : Ajouter, modifier ou supprimer"
+            >
+              <Tags className="w-4 h-4" />
+              <span className="whitespace-nowrap font-bold">Catégories</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -339,16 +645,20 @@ export default function Products() {
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-xs" data-testid="products-table">
-            <thead className="bg-slate-100/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200">
+            <thead className="bg-slate-100/90 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3">{t("code_barre")}</th>
-                <th className="px-4 py-3">{t("name")}</th>
-                <th className="px-4 py-3">{t("dci")}</th>
-                <th className="px-4 py-3">{t("category")}</th>
-                <th className="px-4 py-3 text-right">Stock</th>
-                <th className="px-4 py-3 text-right">{t("price")}</th>
-                <th className="px-4 py-3 text-center">Régime</th>
-                {canEdit && <th className="px-4 py-3 text-right">{t("actions")}</th>}
+                <th className="px-3 sm:px-4 py-3 hidden sm:table-cell">{t("code_barre")}</th>
+                <th className="px-3 sm:px-4 py-3">{t("name")}</th>
+                <th className="px-4 py-3 hidden xl:table-cell">{t("dci")}</th>
+                <th className="px-4 py-3 hidden md:table-cell">{t("category")}</th>
+                <th className="px-3 sm:px-4 py-3 text-right">Stock</th>
+                <th className="px-3 sm:px-4 py-3 text-right">{t("price")}</th>
+                <th className="px-3 sm:px-4 py-3 text-center hidden lg:table-cell">Régime</th>
+                {canEdit && (
+                  <th className="px-3 sm:px-4 py-3 text-right sticky right-0 bg-slate-100/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10">
+                    {t("actions")}
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -369,16 +679,19 @@ export default function Products() {
                 return (
                   <tr
                     key={p.id}
-                    className={`transition-colors ${
+                    className={`transition-colors group ${
                       isRx ? "bg-red-50/20 hover:bg-red-50/40" : "hover:bg-slate-50/70"
                     }`}
                     data-testid={`product-row-${p.id}`}
                   >
-                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600 font-semibold">
-                      {p.code_barre}
+                    {/* Code-barres (desktop sm+) */}
+                    <td className="px-3 sm:px-4 py-3 font-mono text-[11px] text-slate-600 font-semibold hidden sm:table-cell whitespace-nowrap">
+                      {p.code_barre || "—"}
                     </td>
-                    <td className="px-4 py-3 font-bold text-slate-900">
-                      <div className="flex items-center gap-1.5">
+
+                    {/* Nom + Forme + informations compactes sur petit écran */}
+                    <td className="px-3 sm:px-4 py-3 font-bold text-slate-900 min-w-[140px]">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={isRx ? "text-red-950 font-bold" : ""}>{p.nom_commercial}</span>
                         {isRx && (
                           <span className="text-[9px] bg-red-600 text-white font-extrabold px-1.5 py-0.2 rounded shadow-2xs">
@@ -386,17 +699,26 @@ export default function Products() {
                           </span>
                         )}
                       </div>
-                      {p.forme_pharmaceutique && (
-                        <div className="text-[10px] text-slate-400 font-normal">{p.forme_pharmaceutique}</div>
-                      )}
+                      <div className="text-[10px] text-slate-400 font-normal flex items-center gap-1 flex-wrap mt-0.5">
+                        {p.forme_pharmaceutique && <span>{p.forme_pharmaceutique}</span>}
+                        {p.dci && <span className="xl:hidden text-slate-500 font-medium">· {p.dci}</span>}
+                        <span className="md:hidden text-emerald-800 bg-emerald-50 px-1 rounded font-medium">· {catName(p.categorie_id)}</span>
+                        {p.code_barre && <span className="sm:hidden font-mono text-[9px] text-slate-500">· {p.code_barre}</span>}
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-600 font-medium">{p.dci || "—"}</td>
-                    <td className="px-4 py-3">
+
+                    {/* DCI (desktop xl) */}
+                    <td className="px-4 py-3 text-slate-600 font-medium hidden xl:table-cell">{p.dci || "—"}</td>
+
+                    {/* Catégorie (desktop md) */}
+                    <td className="px-4 py-3 hidden md:table-cell">
                       <span className="text-[10px] bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md">
                         {catName(p.categorie_id)}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-mono">
+
+                    {/* Stock */}
+                    <td className="px-3 sm:px-4 py-3 text-right font-mono whitespace-nowrap">
                       <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
                         isOutOfStock
                           ? "bg-red-50 text-red-600 border border-red-200"
@@ -407,10 +729,14 @@ export default function Products() {
                         {p.stock_total || 0}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right font-bold font-mono text-primary">
+
+                    {/* Prix */}
+                    <td className="px-3 sm:px-4 py-3 text-right font-bold font-mono text-primary whitespace-nowrap text-xs">
                       {formatXOF(p.prix_vente)}
                     </td>
-                    <td className="px-4 py-3 text-center">
+
+                    {/* Régime (desktop lg) */}
+                    <td className="px-3 sm:px-4 py-3 text-center hidden lg:table-cell whitespace-nowrap">
                       {isRx ? (
                         <span className="text-[10px] bg-red-100 text-red-800 border border-red-300 font-extrabold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1 shadow-2xs">
                           🔴 Ordonnance
@@ -419,13 +745,23 @@ export default function Products() {
                         <span className="text-[10px] text-slate-400">Vente libre</span>
                       )}
                     </td>
+
+                    {/* Actions: STICKY RIGHT - TOUJOURS VISIBLE SANS DÉBORDEMENT */}
                     {canEdit && (
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-3 sm:px-4 py-3 text-right sticky right-0 bg-white/95 backdrop-blur-xs group-hover:bg-slate-50/95 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10 whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openBarcodeModal(p)}
+                            data-testid={`barcode-product-${p.id}`}
+                            className="p-1.5 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-lg transition-colors border border-slate-200 sm:border-transparent"
+                            title="Générer / Imprimer le code-barre"
+                          >
+                            <Barcode className="w-3.5 h-3.5" />
+                          </button>
                           <button
                             onClick={() => startEdit(p)}
                             data-testid={`edit-product-${p.id}`}
-                            className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg"
+                            className="p-1.5 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors border border-slate-200 sm:border-transparent"
                             title="Modifier"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -434,7 +770,7 @@ export default function Products() {
                             <button
                               onClick={() => del(p)}
                               data-testid={`delete-product-${p.id}`}
-                              className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg"
+                              className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors border border-slate-200 sm:border-transparent"
                               title="Supprimer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -472,16 +808,31 @@ export default function Products() {
 
             <form onSubmit={save} className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1 uppercase tracking-wider">{t("code_barre")}</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">{t("code_barre")}</label>
+                  <button
+                    type="button"
+                    onClick={generateBarcode}
+                    disabled={generatingCode}
+                    data-testid="product-form-generate-code"
+                    className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1 disabled:opacity-50"
+                    title="Générer un code-barre interne unique"
+                  >
+                    <Zap className="w-3 h-3" />
+                    {generatingCode ? "..." : "Générer"}
+                  </button>
+                </div>
                 <input
-                  required
                   autoFocus
                   data-testid="product-form-code"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold focus:bg-white focus:ring-1 focus:ring-primary"
-                  value={form.code_barre}
+                  value={form.code_barre || ""}
                   onChange={(e) => setForm({ ...form, code_barre: e.target.value })}
-                  placeholder="ex: 3400936123456"
+                  placeholder="Scannez la boîte ou laissez vide"
                 />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Vide = code généré automatiquement à l'enregistrement
+                </p>
               </div>
 
               <div>
@@ -534,10 +885,11 @@ export default function Products() {
                 </div>
 
                 <SearchableSelect
+                  allowCustom={true}
                   value={form.categorie_id || ""}
-                  onChange={(val) => setForm({ ...form, categorie_id: val })}
-                  placeholder="— Sélectionner ou rechercher catégorie —"
-                  searchPlaceholder="Rechercher catégorie..."
+                  onChange={handleCategoryChange}
+                  placeholder="— Choisir ou saisir une catégorie —"
+                  searchPlaceholder="Rechercher ou taper une nouvelle catégorie..."
                   options={cats.map((c) => ({ value: c.id, label: c.name }))}
                 />
 
@@ -619,6 +971,365 @@ export default function Products() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Barcode Modal */}
+      {barcodeProduct && (
+        <div
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          data-testid="barcode-modal"
+        >
+          <div className="bg-white rounded-2xl w-full max-w-md border border-slate-200 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-emerald-50/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Barcode className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-heading text-sm font-bold text-slate-900 leading-tight">
+                    Code-barre et Étiquette
+                  </h3>
+                  <div className="text-[11px] text-slate-500 truncate max-w-[260px]">
+                    {barcodeProduct.nom_commercial}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setBarcodeProduct(null)}
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Product mini recap */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex justify-between items-center text-xs">
+                <div>
+                  <div className="font-bold text-slate-900">{barcodeProduct.nom_commercial}</div>
+                  <div className="text-[10px] text-slate-500">
+                    {[barcodeProduct.forme_pharmaceutique, barcodeProduct.dci].filter(Boolean).join(" · ") || "Médicament"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] text-slate-400 uppercase font-bold">Prix vente</div>
+                  <div className="font-mono font-black text-primary text-sm">
+                    {formatXOF(barcodeProduct.prix_vente)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Barcode Visual Preview */}
+              <div className="flex flex-col items-center justify-center p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                <BarcodeSvg code={barcodeVal} height={52} />
+              </div>
+
+              {/* Input & Generator Actions */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                    Numéro Code-barre (EAN-13)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateInModal}
+                    disabled={barcodeGenLoading}
+                    className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all"
+                    title="Générer automatiquement un code-barre interne unique"
+                  >
+                    <Zap className="w-3 h-3 text-emerald-600" />
+                    <span>{barcodeGenLoading ? "Génération..." : "⚡ Nouveau code"}</span>
+                  </button>
+                </div>
+                <input
+                  autoFocus
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono font-bold focus:bg-white focus:ring-1 focus:ring-primary"
+                  value={barcodeVal}
+                  onChange={(e) => setBarcodeVal(e.target.value)}
+                  placeholder="Scannez avec la douchette ou cliquez sur Nouveau code"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Vous pouvez aussi scanner directement la boîte avec votre douchette.
+                </p>
+              </div>
+
+              {/* Modal footer buttons */}
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePrintLabel(false)}
+                    disabled={!barcodeVal}
+                    className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer shadow-xs"
+                    title="Imprimer l'étiquette complète avec la pharmacie, le produit, le prix et le code-barres"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-slate-200" />
+                    <span>Imprimer étiquette</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePrintLabel(true)}
+                    disabled={!barcodeVal}
+                    className="px-3 py-2 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
+                    title="Imprimer uniquement le code-barres comme dans la boîte de prévisualisation"
+                  >
+                    <Barcode className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Code-barre seul</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBarcodeProduct(null)}
+                    className="px-3 py-2 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-600 cursor-pointer"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveBarcode}
+                    disabled={barcodeSaving}
+                    className="bg-primary hover:bg-[#14532D] text-white px-4 py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-900/10 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    <span>{barcodeSaving ? "Enregistrement..." : "Enregistrer"}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal: Gérer les catégories */}
+      {showCatModal && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-2xl flex items-center justify-center shadow-xs">
+                  <Tags className="w-5 h-5 text-emerald-700" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">Gestion des Catégories</h3>
+                  <p className="text-[11px] text-slate-500">
+                    {cats.length} catégories enregistrées · Ajouter, modifier ou supprimer
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCatModal(false);
+                  cancelEditCategory();
+                }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Add Category Section: Button or Input Area */}
+            {!isAddingCategory ? (
+              <div className="p-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2">
+                <span className="text-xs text-slate-500 font-medium">Créer une nouvelle catégorie pour vos produits</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingCategory(true);
+                    setNewCatName("");
+                  }}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98] flex-shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Ajouter une catégorie</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 border-b border-emerald-200 bg-gradient-to-br from-emerald-50/90 to-teal-50/50 space-y-3 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-950">
+                    <FolderPlus className="w-4 h-4 text-emerald-600" />
+                    <span>Renseigner le nom de la nouvelle catégorie</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingCategory(false);
+                      setNewCatName("");
+                    }}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/50"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    autoFocus
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddCategory(e);
+                      }
+                      if (e.key === "Escape") {
+                        setIsAddingCategory(false);
+                        setNewCatName("");
+                      }
+                    }}
+                    placeholder="Tapez le nom ici (ex: Compléments alimentaires, Dermocosmétique...)"
+                    className="w-full px-3.5 py-2.5 bg-white border-2 border-emerald-300 focus:border-emerald-600 rounded-xl text-xs font-semibold text-slate-900 outline-none transition-all shadow-inner"
+                  />
+                  <p className="text-[10px] text-slate-500">
+                    Appuyez sur Entrée pour valider directement ou cliquez sur « Enregistrer ».
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingCategory(false);
+                      setNewCatName("");
+                    }}
+                    className="px-3.5 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddCategory}
+                    disabled={catSaving}
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{catSaving ? "Enregistrement..." : "Enregistrer la catégorie"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Filter Inside Categories List */}
+            <div className="px-4 pt-3 pb-1">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={catSearch}
+                  onChange={(e) => setCatSearch(e.target.value)}
+                  placeholder="Rechercher une catégorie..."
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                />
+                {catSearch && (
+                  <button onClick={() => setCatSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Categories List */}
+            <div className="p-3 max-h-80 overflow-y-auto divide-y divide-slate-100 space-y-1">
+              {cats.length === 0 ? (
+                <div className="text-center py-8 text-xs text-slate-400">Aucune catégorie trouvée</div>
+              ) : (
+                cats
+                  .filter((c) => !catSearch.trim() || c.name.toLowerCase().includes(catSearch.toLowerCase()))
+                  .sort((a, b) => a.name.localeCompare(b.name, "fr", { sensitivity: "base" }))
+                  .map((cat) => {
+                    const count = items.filter((p) => p.categorie_id === cat.id).length;
+                    const isEditing = editingCatId === cat.id;
+
+                    return (
+                      <div key={cat.id} className="pt-2 first:pt-0 flex items-center justify-between gap-2 py-1.5 px-2.5 hover:bg-slate-50/80 rounded-xl transition-colors">
+                        {isEditing ? (
+                          <div className="flex items-center gap-2 flex-1">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={editingCatName}
+                              onChange={(e) => setEditingCatName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleSaveCategoryName(cat.id);
+                                if (e.key === "Escape") cancelEditCategory();
+                              }}
+                              className="flex-1 px-3 py-1 text-xs font-bold bg-white border-2 border-emerald-500 rounded-lg outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleSaveCategoryName(cat.id)}
+                              className="p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors shadow-2xs"
+                              title="Valider la modification"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditCategory}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+                              title="Annuler"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0"></span>
+                              <span className="text-xs font-bold text-slate-800 truncate">{cat.name}</span>
+                              <span className="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-medium flex-shrink-0">
+                                {count} produit{count > 1 ? "s" : ""}
+                              </span>
+                            </div>
+                            {canEdit && (
+                              <div className="flex items-center gap-1 flex-shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditCategory(cat)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                                  title={`Modifier le nom de "${cat.name}"`}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteCategory(cat)}
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title={`Supprimer "${cat.name}"`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3.5 bg-slate-50 border-t border-slate-100 flex justify-between items-center text-[11px] text-slate-500">
+              <span>{cats.length} catégories au total</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCatModal(false);
+                  cancelEditCategory();
+                }}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:bg-slate-100 transition-colors shadow-2xs"
+              >
+                Fermer
+              </button>
+            </div>
           </div>
         </div>
       )}

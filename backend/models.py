@@ -87,7 +87,8 @@ class Category(CategoryBase):
 
 # ---------- Products ----------
 class ProductBase(BaseModel):
-    code_barre: str
+    # Optional: if left empty, an internal EAN-13 (prefix "2") is generated server-side.
+    code_barre: Optional[str] = ""
     nom_commercial: str
     dci: Optional[str] = None
     forme_pharmaceutique: Optional[str] = None
@@ -175,19 +176,59 @@ class StockMovement(BaseModel):
     notes: Optional[str] = None
 
 
+# ---------- Medical Acts / Prestations de Soins ----------
+class MedicalActBase(BaseModel):
+    name: str
+    code: Optional[str] = None
+    category: Optional[str] = "Général"
+    price: float = 0.0
+    active: bool = True
+    description: Optional[str] = None
+
+
+class MedicalAct(MedicalActBase):
+    id: str = Field(default_factory=gen_id)
+    pharmacy_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=now_utc)
+
+
+# ---------- Laboratory Exams / Analyses Médicales ----------
+class LabExamBase(BaseModel):
+    name: str
+    code: Optional[str] = None
+    category: Optional[str] = "Biochimie"
+    price: float = 0.0
+    active: bool = True
+    description: Optional[str] = None
+
+
+class LabExam(LabExamBase):
+    id: str = Field(default_factory=gen_id)
+    pharmacy_id: Optional[str] = None
+    created_at: datetime = Field(default_factory=now_utc)
+
+
 # ---------- Sales / POS ----------
 class SaleItemRequest(BaseModel):
     product_id: str
     quantity: int
     unit_price: Optional[float] = None
+    is_act: Optional[bool] = False
+    act_name: Optional[str] = None
+    is_lab: Optional[bool] = False
+    lab_name: Optional[str] = None
 
 
 class SaleItem(BaseModel):
     product_id: str
-    batch_id: str
+    batch_id: Optional[str] = None
     quantity: int
     unit_price: float
     subtotal: float
+    is_act: Optional[bool] = False
+    act_name: Optional[str] = None
+    is_lab: Optional[bool] = False
+    lab_name: Optional[str] = None
 
 
 class SaleRequest(BaseModel):
@@ -221,6 +262,10 @@ class PresaleItemRequest(BaseModel):
     quantity: int
     unit_price: Optional[float] = None
     product_name: Optional[str] = None
+    is_act: Optional[bool] = False
+    act_name: Optional[str] = None
+    is_lab: Optional[bool] = False
+    lab_name: Optional[str] = None
 
 
 class PresaleRequest(BaseModel):

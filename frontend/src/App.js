@@ -15,6 +15,8 @@ import Reception from "@/pages/Reception";
 import Stock from "@/pages/Stock";
 import POS from "@/pages/POS";
 import SalesHistory from "@/pages/SalesHistory";
+import Acts from "@/pages/Acts";
+import Lab from "@/pages/Lab";
 import Losses from "@/pages/Losses";
 import Reports from "@/pages/Reports";
 import Users from "@/pages/Users";
@@ -38,6 +40,9 @@ function App() {
             <Route path="/pos" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier", "operator"]}><Shell><POS /></Shell></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><SalesHistory /></Shell></ProtectedRoute>} />
             <Route path="/sales-history" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier"]}><Shell><SalesHistory /></Shell></ProtectedRoute>} />
+            <Route path="/actes" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier", "operator"]}><Shell><Acts /></Shell></ProtectedRoute>} />
+            <Route path="/laboratoire" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier", "operator"]}><Shell><Lab /></Shell></ProtectedRoute>} />
+            <Route path="/lab" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier", "operator"]}><Shell><Lab /></Shell></ProtectedRoute>} />
             <Route path="/products" element={<ProtectedRoute><Shell><Products /></Shell></ProtectedRoute>} />
             <Route path="/stock" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper", "operator"]}><Shell><Stock /></Shell></ProtectedRoute>} />
             <Route path="/reception" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "storekeeper"]}><Shell><Reception /></Shell></ProtectedRoute>} />

@@ -104,7 +104,7 @@ export default function PharmacySetup() {
             APPLICATION UNIVERSELLE · MARQUE BLANCHE
           </div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Identité & Configuration de la Pharmacie
+            Identité et Configuration de la Pharmacie
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
             Renseignez les coordonnées, le logo et les données légales de votre officine. Ces informations s'appliqueront instantanément sur tous vos tickets de caisse, reçus, bons de commande et en-têtes.
@@ -117,7 +117,7 @@ export default function PharmacySetup() {
             onClick={() => navigate("/suppliers")}
             className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/80 font-bold text-xs rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <Truck className="w-4 h-4 text-primary" /> Fournisseurs & Grossistes
+            <Truck className="w-4 h-4 text-primary" /> Fournisseurs et Grossistes
           </button>
           <button
             type="button"
@@ -137,7 +137,7 @@ export default function PharmacySetup() {
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <Building2 className="w-5 h-5 text-primary" />
               <h2 className="font-heading text-base font-bold text-slate-900">
-                1. Identité de l'Officine & Logo
+                1. Identité de l'Officine et Logo
               </h2>
             </div>
 
@@ -219,7 +219,7 @@ export default function PharmacySetup() {
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <MapPin className="w-5 h-5 text-primary" />
               <h2 className="font-heading text-base font-bold text-slate-900">
-                2. Localisation, Google Maps & Contacts
+                2. Localisation, Google Maps et Contacts
               </h2>
             </div>
 
@@ -393,7 +393,7 @@ export default function PharmacySetup() {
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <Shield className="w-5 h-5 text-primary" />
               <h2 className="font-heading text-base font-bold text-slate-900">
-                3. Informations Légales, Fiscales & Pied de Ticket
+                3. Informations Légales, Fiscales et Pied de Ticket
               </h2>
             </div>
 

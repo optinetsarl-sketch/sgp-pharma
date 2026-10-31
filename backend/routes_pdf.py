@@ -268,7 +268,7 @@ async def purchase_order_pdf(oid: str, user: dict = Depends(get_current_user)):
     # Signature footer
     story.append(Spacer(1, 30))
     sign_tbl = Table([
-        [Paragraph("Signature & cachet pharmacie", small_st), Paragraph("Signature & cachet fournisseur", small_st)],
+        [Paragraph("Signature et cachet pharmacie", small_st), Paragraph("Signature et cachet fournisseur", small_st)],
         ["", ""],
     ], colWidths=[80*mm, 80*mm], rowHeights=[6*mm, 25*mm])
     sign_tbl.setStyle(TableStyle([

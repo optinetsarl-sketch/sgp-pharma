@@ -25,6 +25,8 @@ from routes_pharmacies import router as pharmacies_router
 from routes_pdf import router as pdf_router
 from routes_docs import router as docs_router
 from routes_presales import router as presales_router
+from routes_acts import router as acts_router
+from routes_lab import router as lab_router
 from seed import seed_demo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -61,6 +63,8 @@ app.include_router(pharmacies_router)
 app.include_router(pdf_router)
 app.include_router(docs_router)
 app.include_router(presales_router)
+app.include_router(acts_router)
+app.include_router(lab_router)
 
 
 @app.on_event("startup")
@@ -88,6 +92,12 @@ async def on_startup():
     await db.purchase_orders.create_index("id", unique=True)
     await db.losses.create_index("id", unique=True)
     await db.pharmacies.create_index("id", unique=True)
+    await db.medical_acts.create_index("id", unique=True)
+    await db.medical_acts.create_index("name")
+    await db.lab_exams.create_index("id", unique=True)
+    await db.lab_exams.create_index("name")
+    await db.lab_categories.create_index("id", unique=True)
+    await db.lab_categories.create_index("name")
     # Multi-tenant indexes
     await db.products.create_index("pharmacy_id")
     await db.batches.create_index("pharmacy_id")
@@ -99,6 +109,9 @@ async def on_startup():
     await db.purchase_orders.create_index("pharmacy_id")
     await db.losses.create_index("pharmacy_id")
     await db.stock_movements.create_index("pharmacy_id")
+    await db.medical_acts.create_index("pharmacy_id")
+    await db.lab_exams.create_index("pharmacy_id")
+    await db.lab_categories.create_index("pharmacy_id")
 
     await seed_admin()
     await seed_demo()

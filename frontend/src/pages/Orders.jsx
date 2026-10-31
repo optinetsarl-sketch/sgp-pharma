@@ -196,11 +196,11 @@ export default function Orders() {
             <thead className="bg-slate-100/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200">
               <tr>
                 <th className="px-4 py-3">{t("date")}</th>
-                <th className="px-4 py-3">{t("supplier")} & Destination PRA</th>
-                <th className="px-4 py-3 text-right">{t("items_count")}</th>
+                <th className="px-4 py-3">{t("supplier")} et Destination PRA</th>
+                <th className="px-4 py-3 text-right hidden sm:table-cell">{t("items_count")}</th>
                 <th className="px-4 py-3 text-right">{t("total")}</th>
-                <th className="px-4 py-3">{t("status")}</th>
-                <th className="px-4 py-3 text-right">{t("actions")}</th>
+                <th className="px-4 py-3 hidden md:table-cell">{t("status")}</th>
+                <th className="px-4 py-3 text-right sticky right-0 bg-slate-100/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10">{t("actions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -214,8 +214,8 @@ export default function Orders() {
               )}
 
               {filteredOrders.map((o) => (
-                <tr key={o.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="px-4 py-3 font-mono text-[11px] text-slate-600 font-semibold">
+                <tr key={o.id} className="hover:bg-slate-50/70 transition-colors group">
+                  <td className="px-4 py-3 font-mono text-[11px] text-slate-600 font-semibold whitespace-nowrap">
                     {new Date(o.created_at).toLocaleDateString("fr-FR")}
                   </td>
                   <td className="px-4 py-3">
@@ -234,19 +234,27 @@ export default function Orders() {
                         </div>
                       )
                     )}
+                    <div className="md:hidden mt-1 flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${getStatusBadge(o.status)}`}>
+                        {o.status}
+                      </span>
+                      <span className="sm:hidden text-[10px] text-slate-500 font-mono">
+                        {o.items.length} réf.
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono font-medium text-slate-700">
+                  <td className="px-4 py-3 text-right font-mono font-medium text-slate-700 hidden sm:table-cell whitespace-nowrap">
                     {o.items.length} réf.
                   </td>
-                  <td className="px-4 py-3 text-right font-mono font-bold text-primary">
+                  <td className="px-4 py-3 text-right font-mono font-bold text-primary whitespace-nowrap">
                     {formatXOF(o.total)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
                     <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${getStatusBadge(o.status)}`}>
                       {o.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right sticky right-0 bg-white/95 backdrop-blur-xs group-hover:bg-slate-50/95 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10 whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => downloadPdf(o.id)}

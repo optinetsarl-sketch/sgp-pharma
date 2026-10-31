@@ -138,7 +138,7 @@ export default function Dashboard() {
               ✨ Premier Démarrage · Personnalisation
             </div>
             <h2 className="font-heading font-black text-xl sm:text-2xl text-white">
-              Configurez l'Identité & le Logo de votre Pharmacie
+              Configurez l'Identité et le Logo de votre Pharmacie
             </h2>
             <p className="text-xs sm:text-sm text-emerald-100/85 max-w-2xl leading-relaxed">
               Personnalisez le nom officiel, le logo, les coordonnées GPS Google Maps, les numéros de téléphone et le N° d'Agrément qui s'afficheront sur vos tickets de caisse thermiques et documents de vente.
@@ -165,7 +165,7 @@ export default function Dashboard() {
               tone="primary"
               label="Paniers Pré-Vente (Jour)"
               value={`${data.nb_presales_today || 0} paniers`}
-              sub="Préparés & transmis en caisse"
+              sub="Préparés et transmis en caisse"
               onClick={() => navigate("/pos")}
             />
             <StatCard
@@ -181,7 +181,7 @@ export default function Dashboard() {
               icon={Pill}
               label="Références Produits"
               value={`${data.total_products || "Catalogue"}`}
-              sub="Catalogue médicaments & DCI →"
+              sub="Catalogue médicaments et DCI →"
               onClick={() => navigate("/products")}
             />
             <div
@@ -220,7 +220,7 @@ export default function Dashboard() {
               icon={Pill}
               label="Références Produits"
               value={`${data.total_products || "Catalogue"}`}
-              sub="Médicaments & articles répertoriés →"
+              sub="Médicaments et articles répertoriés →"
               onClick={() => navigate("/products")}
             />
             <StatCard
@@ -380,7 +380,7 @@ export default function Dashboard() {
             </span>
           </div>
 
-          <div className="h-64">
+          <div className="h-64" style={{ minHeight: 256 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chart} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>

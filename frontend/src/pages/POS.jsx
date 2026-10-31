@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Minus, Trash2, ShoppingCart, FileText, Printer, X, Download,
   Coins, Banknote, CheckCircle, RotateCcw, AlertCircle, ArrowRight, ShieldAlert, History,
-  Send, Ticket, Clock, UserCheck, RefreshCw, Layers, Link as LinkIcon, Unlink, Sparkles, QrCode
+  Send, Ticket, Clock, UserCheck, RefreshCw, Layers, Link as LinkIcon, Unlink, Sparkles, QrCode, Stethoscope, FlaskConical
 } from "lucide-react";
 import { toast } from "sonner";
 import FEFOBadge from "@/components/FEFOBadge";
@@ -21,6 +21,9 @@ export default function POS() {
   const isOperator = user?.role === "operator";
 
   const [products, setProducts] = useState([]);
+  const [acts, setActs] = useState([]);
+  const [labs, setLabs] = useState([]);
+  const [catalogFilter, setCatalogFilter] = useState("all"); // 'all', 'medicaments', 'actes', 'lab'
   const [q, setQ] = useState("");
   const [cart, setCart] = useState([]); // {product, quantity}
   const [customer, setCustomer] = useState("");
@@ -48,6 +51,16 @@ export default function POS() {
     api.get("/products").then((r) => setProducts(r.data || [])).catch(() => {});
   }, []);
 
+  // Fetch medical acts catalog
+  const loadActs = useCallback(() => {
+    api.get("/acts").then((r) => setActs(r.data || [])).catch(() => {});
+  }, []);
+
+  // Fetch laboratory exams catalog
+  const loadLabs = useCallback(() => {
+    api.get("/lab-exams").then((r) => setLabs(r.data || [])).catch(() => {});
+  }, []);
+
   // Fetch pending pre-sales queue
   const loadPendingPresales = useCallback(() => {
     if (isOperator) return;
@@ -60,32 +73,71 @@ export default function POS() {
 
   useEffect(() => {
     loadProducts();
+    loadActs();
+    loadLabs();
     if (!isOperator) {
       loadPendingPresales();
       const interval = setInterval(loadPendingPresales, 10000);
       return () => clearInterval(interval);
     }
-  }, [loadProducts, loadPendingPresales, isOperator]);
+  }, [loadProducts, loadActs, loadLabs, loadPendingPresales, isOperator]);
+
+  // Combined catalog containing medicines, medical acts, and laboratory exams
+  const combinedCatalog = useMemo(() => {
+    const actItems = acts.filter((a) => a.active !== false).map((a) => ({
+      id: a.id,
+      nom_commercial: a.name,
+      dci: a.description || "Prestation de soins",
+      forme: a.category || "Acte Médical",
+      category: a.category || "Acte Médical",
+      code_barre: a.code || "ACTE",
+      prix_vente: a.price,
+      stock_total: 999999,
+      is_act: true,
+      requires_prescription: false,
+    }));
+
+    const labItems = labs.filter((l) => l.active !== false).map((l) => ({
+      id: l.id,
+      nom_commercial: l.name,
+      dci: l.description || "Examen de Laboratoire",
+      forme: l.category || "Laboratoire",
+      category: l.category || "Laboratoire",
+      code_barre: l.code || "LAB",
+      prix_vente: l.price,
+      stock_total: 999999,
+      is_lab: true,
+      requires_prescription: false,
+    }));
+
+    if (catalogFilter === "medicaments") return products;
+    if (catalogFilter === "actes") return actItems;
+    if (catalogFilter === "lab") return labItems;
+    return [...products, ...actItems, ...labItems];
+  }, [products, acts, labs, catalogFilter]);
 
   const filtered = useMemo(() => {
-    if (!q) return products.slice(0, 30);
+    if (!q) return combinedCatalog.slice(0, 36);
     const ql = q.toLowerCase();
-    return products.filter((p) =>
+    return combinedCatalog.filter((p) =>
       p.nom_commercial?.toLowerCase().includes(ql) ||
       p.dci?.toLowerCase().includes(ql) ||
-      p.code_barre?.toLowerCase().includes(ql)
-    ).slice(0, 30);
-  }, [q, products]);
+      p.code_barre?.toLowerCase().includes(ql) ||
+      p.forme?.toLowerCase().includes(ql) ||
+      p.category?.toLowerCase().includes(ql)
+    ).slice(0, 36);
+  }, [q, combinedCatalog]);
 
   const addToCart = (p, qty = 1) => {
-    if ((p.stock_total || 0) === 0) {
+    const isService = p.is_act || p.is_lab;
+    if (!isService && (p.stock_total || 0) === 0) {
       toast.error(`${p.nom_commercial}: ${t("no_stock")}`);
       return;
     }
     setCart((c) => {
       const ex = c.find((i) => i.product.id === p.id);
       if (ex) {
-        if (ex.quantity + qty > p.stock_total) {
+        if (!isService && ex.quantity + qty > p.stock_total) {
           toast.error(`${p.nom_commercial}: ${t("insufficient_stock")}`);
           return c;
         }
@@ -101,7 +153,7 @@ export default function POS() {
       e.preventDefault();
       if (!q.trim()) return;
 
-      const exactBarcode = products.find((p) => p.code_barre?.toLowerCase() === q.trim().toLowerCase());
+      const exactBarcode = combinedCatalog.find((p) => p.code_barre?.toLowerCase() === q.trim().toLowerCase());
       if (exactBarcode) {
         addToCart(exactBarcode, 1);
         setQ("");
@@ -121,7 +173,8 @@ export default function POS() {
     if (i.product.id !== pid) return i;
     const newQ = i.quantity + delta;
     if (newQ <= 0) return null;
-    if (newQ > i.product.stock_total) {
+    const isService = i.product.is_act || i.product.is_lab;
+    if (!isService && newQ > i.product.stock_total) {
       toast.error(t("insufficient_stock"));
       return i;
     }
@@ -131,7 +184,9 @@ export default function POS() {
   const setExactQty = (pid, val, maxStock) => {
     const parsed = parseInt(val) || 0;
     if (parsed <= 0) return;
-    if (parsed > maxStock) {
+    const targetItem = cart.find((i) => i.product.id === pid);
+    const isService = targetItem?.product?.is_act || targetItem?.product?.is_lab;
+    if (!isService && parsed > maxStock) {
       toast.error(t("insufficient_stock"));
       return;
     }
@@ -151,7 +206,7 @@ export default function POS() {
   };
 
   const total = cart.reduce((s, i) => s + i.quantity * (i.product.prix_vente || 0), 0);
-  const needsPrescription = cart.some((i) => i.product.requires_prescription);
+  const needsPrescription = cart.some((i) => !i.product.is_act && !i.product.is_lab && i.product.requires_prescription);
 
   // Change calculation (Cashier only)
   const parsedReceived = parseFloat(amountReceived) || 0;
@@ -174,6 +229,46 @@ export default function POS() {
     let hasMissing = false;
 
     for (const item of ps.items) {
+      if (item.is_act) {
+        const act = acts.find((a) => a.id === item.product_id);
+        rebuiltCart.push({
+          product: {
+            id: item.product_id,
+            nom_commercial: item.product_name || item.act_name || act?.name || "Acte Médical",
+            dci: "Prestation de soins",
+            forme: act?.category || "Acte Médical",
+            category: act?.category || "Acte Médical",
+            code_barre: item.code_barre || act?.code || "ACTE",
+            prix_vente: item.unit_price || act?.price || 0,
+            stock_total: 999999,
+            is_act: true,
+            requires_prescription: false,
+          },
+          quantity: item.quantity,
+        });
+        continue;
+      }
+
+      if (item.is_lab) {
+        const lab = labs.find((l) => l.id === item.product_id);
+        rebuiltCart.push({
+          product: {
+            id: item.product_id,
+            nom_commercial: item.product_name || item.lab_name || lab?.name || "Examen de Laboratoire",
+            dci: "Examen de Laboratoire",
+            forme: lab?.category || "Laboratoire",
+            category: lab?.category || "Laboratoire",
+            code_barre: item.code_barre || lab?.code || "LAB",
+            prix_vente: item.unit_price || lab?.price || 0,
+            stock_total: 999999,
+            is_lab: true,
+            requires_prescription: false,
+          },
+          quantity: item.quantity,
+        });
+        continue;
+      }
+
       const prod = products.find((p) => p.id === item.product_id);
       if (prod) {
         rebuiltCart.push({
@@ -240,6 +335,10 @@ export default function POS() {
         quantity: i.quantity,
         unit_price: i.product.prix_vente,
         product_name: i.product.nom_commercial,
+        is_act: !!i.product.is_act,
+        act_name: i.product.is_act ? i.product.nom_commercial : undefined,
+        is_lab: !!i.product.is_lab,
+        lab_name: i.product.is_lab ? i.product.nom_commercial : undefined,
       }));
 
       const { data } = await api.post("/presales", {
@@ -276,7 +375,15 @@ export default function POS() {
     }
     setSubmitting(true);
     try {
-      const items = cart.map((i) => ({ product_id: i.product.id, quantity: i.quantity }));
+      const items = cart.map((i) => ({
+        product_id: i.product.id,
+        quantity: i.quantity,
+        unit_price: i.product.prix_vente,
+        is_act: !!i.product.is_act,
+        act_name: i.product.is_act ? i.product.nom_commercial : undefined,
+        is_lab: !!i.product.is_lab,
+        lab_name: i.product.is_lab ? i.product.nom_commercial : undefined,
+      }));
       const { data } = await api.post("/sales", {
         items,
         payment_method: paymentMethod,
@@ -349,14 +456,14 @@ export default function POS() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 min-h-[calc(100vh-5rem)] -m-2" data-testid="pos-page">
+    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-[calc(100vh-5rem)]" data-testid="pos-page">
       {/* Left: Product Catalog & Search & Live Queue */}
       <div className="flex-1 flex flex-col space-y-4">
         {/* Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="label-tiny mb-0.5 text-primary font-bold">
-              {isOperator ? "GUICHET DE SAISIE & CONSEIL CLIENT · PRÉ-VENTE" : `${t("nav_pos")} · CAISSE ENREGISTREUSE`}
+              {isOperator ? "GUICHET DE SAISIE ET CONSEIL CLIENT · PRÉ-VENTE" : `${t("nav_pos")} · CAISSE ENREGISTREUSE`}
             </div>
             <h1 className="font-heading text-2xl lg:text-3xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               <span>{isOperator ? "Préparation de Panier (Devis)" : t("new_sale")}</span>
@@ -450,7 +557,7 @@ export default function POS() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="Scannez un code-barres ou tapez nom / DCI (Appuyez sur Entrée)..."
+            placeholder="Scannez un code-barres ou tapez nom / acte (Consultation, CPN...)"
             className="flex-1 outline-none text-sm font-medium text-slate-900 placeholder:text-slate-400 bg-transparent"
           />
           {q && (
@@ -460,17 +567,66 @@ export default function POS() {
           )}
         </div>
 
+        {/* Catalog Filter Tabs */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <button
+            onClick={() => setCatalogFilter("all")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              catalogFilter === "all"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            Tous ({products.length + acts.filter((a) => a.active !== false).length + labs.filter((l) => l.active !== false).length})
+          </button>
+          <button
+            onClick={() => setCatalogFilter("medicaments")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              catalogFilter === "medicaments"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            💊 Médicaments ({products.length})
+          </button>
+          <button
+            onClick={() => setCatalogFilter("actes")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              catalogFilter === "actes"
+                ? "bg-emerald-700 text-white shadow-xs"
+                : "bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100"
+            }`}
+          >
+            <Stethoscope className="w-3.5 h-3.5" />
+            <span>Actes et Soins ({acts.filter((a) => a.active !== false).length})</span>
+          </button>
+          <button
+            onClick={() => setCatalogFilter("lab")}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+              catalogFilter === "lab"
+                ? "bg-indigo-700 text-white shadow-xs"
+                : "bg-indigo-50 border border-indigo-200 text-indigo-800 hover:bg-indigo-100"
+            }`}
+          >
+            <FlaskConical className="w-3.5 h-3.5" />
+            <span>Laboratoire ({labs.filter((l) => l.active !== false).length})</span>
+          </button>
+        </div>
+
         {/* Products Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh] lg:max-h-[68vh] pr-1">
           {filtered.length === 0 && (
             <div className="col-span-full bg-white border border-dashed border-slate-300 rounded-xl p-8 text-center text-slate-400">
-              Aucun produit correspondant trouvé
+              Aucun produit ou acte médical correspondant trouvé
             </div>
           )}
           {filtered.map((p) => {
-            const oos = (p.stock_total || 0) === 0;
+            const isAct = !!p.is_act;
+            const isLab = !!p.is_lab;
+            const isService = isAct || isLab;
+            const oos = !isService && (p.stock_total || 0) === 0;
             const inCart = cart.find((i) => i.product.id === p.id);
-            const isRx = p.requires_prescription;
+            const isRx = !isService && p.requires_prescription;
 
             return (
               <button
@@ -482,7 +638,15 @@ export default function POS() {
                   oos
                     ? "bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed"
                     : inCart
-                    ? "bg-emerald-50/50 border-primary shadow-xs ring-1 ring-emerald-500/30"
+                    ? isAct
+                      ? "bg-teal-50/70 border-teal-500 shadow-xs ring-1 ring-teal-500/30"
+                      : isLab
+                      ? "bg-indigo-50/70 border-indigo-500 shadow-xs ring-1 ring-indigo-500/30"
+                      : "bg-emerald-50/50 border-primary shadow-xs ring-1 ring-emerald-500/30"
+                    : isAct
+                    ? "bg-gradient-to-br from-teal-50/30 to-white border-teal-200 hover:border-teal-500 hover:shadow-md hover:-translate-y-0.5"
+                    : isLab
+                    ? "bg-gradient-to-br from-indigo-50/30 to-white border-indigo-200 hover:border-indigo-500 hover:shadow-md hover:-translate-y-0.5"
                     : "bg-white border-slate-200/90 hover:border-emerald-400 hover:shadow-md hover:-translate-y-0.5"
                 }`}
               >
@@ -491,11 +655,21 @@ export default function POS() {
                     <span className="font-bold text-sm text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
                       {p.nom_commercial}
                     </span>
-                    {isRx && (
+                    {isAct ? (
+                      <span className="text-[9px] font-bold bg-teal-100 text-teal-800 border border-teal-200 px-1.5 py-0.5 rounded shadow-2xs flex-shrink-0 flex items-center gap-0.5">
+                        <Stethoscope className="w-2.5 h-2.5" />
+                        <span>Acte</span>
+                      </span>
+                    ) : isLab ? (
+                      <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 px-1.5 py-0.5 rounded shadow-2xs flex-shrink-0 flex items-center gap-0.5">
+                        <FlaskConical className="w-2.5 h-2.5" />
+                        <span>Lab</span>
+                      </span>
+                    ) : isRx ? (
                       <span className="text-[9px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded shadow-2xs flex-shrink-0">
                         🔴 Rx
                       </span>
-                    )}
+                    ) : null}
                   </div>
                   <div className="text-xs text-slate-500 line-clamp-1 italic mb-2">
                     {p.dci || p.forme || "—"}
@@ -504,18 +678,30 @@ export default function POS() {
 
                 <div className="flex items-end justify-between pt-2 border-t border-slate-100">
                   <div>
-                    <span className="text-[10px] text-slate-400 block font-medium">Prix public</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">
+                      {isService ? "Tarif officiel" : "Prix public"}
+                    </span>
                     <span className="font-black font-heading text-sm text-slate-900">
                       {formatXOF(p.prix_vente)}
                     </span>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-[10px] text-slate-400 block font-medium">Dispo</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">
+                      {isService ? "Service" : "Dispo"}
+                    </span>
                     <span className={`text-xs font-bold ${
-                      oos ? "text-red-600" : p.stock_total <= (p.seuil_alerte || 10) ? "text-amber-600" : "text-emerald-700"
+                      isAct
+                        ? "text-teal-700"
+                        : isLab
+                        ? "text-indigo-700"
+                        : oos
+                        ? "text-red-600"
+                        : p.stock_total <= (p.seuil_alerte || 10)
+                        ? "text-amber-600"
+                        : "text-emerald-700"
                     }`}>
-                      {oos ? "Épuisé" : `${p.stock_total} u.`}
+                      {isAct ? "Prestation" : isLab ? "Examen" : oos ? "Épuisé" : `${p.stock_total} u.`}
                     </span>
                   </div>
                 </div>
@@ -580,59 +766,73 @@ export default function POS() {
             </div>
           )}
 
-          {cart.map((item) => (
-            <div key={item.product.id} className="pt-2 first:pt-0 flex items-center justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <span className="font-bold text-xs text-slate-900 truncate">
-                    {item.product.nom_commercial}
-                  </span>
-                  {item.product.requires_prescription && (
-                    <span className="text-[8px] bg-red-600 text-white font-extrabold px-1 rounded">
-                      Rx
+          {cart.map((item) => {
+            const isAct = !!item.product.is_act;
+            const isLab = !!item.product.is_lab;
+            return (
+              <div key={item.product.id} className="pt-2 first:pt-0 flex items-center justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-bold text-xs text-slate-900 truncate">
+                      {item.product.nom_commercial}
                     </span>
-                  )}
+                    {isAct ? (
+                      <span className="text-[8px] bg-teal-100 text-teal-800 border border-teal-200 font-bold px-1 rounded flex items-center gap-0.5">
+                        <Stethoscope className="w-2 h-2" />
+                        <span>Acte</span>
+                      </span>
+                    ) : isLab ? (
+                      <span className="text-[8px] bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold px-1 rounded flex items-center gap-0.5">
+                        <FlaskConical className="w-2 h-2" />
+                        <span>Lab</span>
+                      </span>
+                    ) : item.product.requires_prescription && (
+                      <span className="text-[8px] bg-red-600 text-white font-extrabold px-1 rounded">
+                        Rx
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    {formatXOF(item.product.prix_vente)} × {item.quantity} ={" "}
+                    <span className="font-bold text-slate-900">
+                      {formatXOF(item.quantity * item.product.prix_vente)}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium">
-                  {formatXOF(item.product.prix_vente)} × {item.quantity} ={" "}
-                  <span className="font-bold text-slate-900">
-                    {formatXOF(item.quantity * item.product.prix_vente)}
-                  </span>
+
+                {/* Quantity Stepper */}
+                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                  <button
+                    onClick={() => updateQty(item.product.id, -1)}
+                    className="w-6 h-6 rounded-md bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs transition-colors"
+                  >
+                    <Minus className="w-3 h-3" />
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max={isAct || isLab ? 999 : item.product.stock_total}
+                    value={item.quantity}
+                    onChange={(e) => setExactQty(item.product.id, e.target.value, item.product.stock_total)}
+                    className="w-8 text-center text-xs font-bold bg-transparent outline-none"
+                  />
+                  <button
+                    onClick={() => updateQty(item.product.id, 1)}
+                    className="w-6 h-6 rounded-md bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
                 </div>
-              </div>
 
-              {/* Quantity Stepper */}
-              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
                 <button
-                  onClick={() => updateQty(item.product.id, -1)}
-                  className="w-6 h-6 rounded-md bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs transition-colors"
+                  onClick={() => removeItem(item.product.id)}
+                  className="text-slate-300 hover:text-red-600 p-1 transition-colors"
                 >
-                  <Minus className="w-3 h-3" />
-                </button>
-                <input
-                  type="number"
-                  min="1"
-                  max={item.product.stock_total}
-                  value={item.quantity}
-                  onChange={(e) => setExactQty(item.product.id, e.target.value, item.product.stock_total)}
-                  className="w-8 text-center text-xs font-bold bg-transparent outline-none"
-                />
-                <button
-                  onClick={() => updateQty(item.product.id, 1)}
-                  className="w-6 h-6 rounded-md bg-white hover:bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs transition-colors"
-                >
-                  <Plus className="w-3 h-3" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-
-              <button
-                onClick={() => removeItem(item.product.id)}
-                className="text-slate-300 hover:text-red-600 p-1 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Customer & Prescription Info */}
@@ -765,7 +965,7 @@ export default function POS() {
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl shadow-md shadow-teal-900/20 disabled:opacity-50 transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 text-sm"
               >
                 <Send className="w-4 h-4" />
-                <span>{submitting ? "Transmission..." : "Valider & Envoyer en Caisse (F2)"}</span>
+                <span>{submitting ? "Transmission..." : "Valider et Envoyer en Caisse (F2)"}</span>
               </button>
             ) : (
               /* CASHIER: FINALIZE SALE BUTTON */
@@ -909,7 +1109,7 @@ export default function POS() {
 
             <div>
               <div className="label-tiny text-teal-700 font-bold uppercase tracking-wider mb-1">
-                Panier validé & transmis à la caisse
+                Panier validé et transmis à la caisse
               </div>
               <h2 className="text-base font-bold text-slate-600">Numéro de Ticket Client :</h2>
               <div className="text-4xl sm:text-5xl font-black font-mono text-teal-900 bg-teal-50 border-2 border-teal-300 py-3 px-6 rounded-2xl my-3 inline-block shadow-inner">
@@ -1064,7 +1264,7 @@ export default function POS() {
                 className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold text-xs shadow-lg shadow-emerald-900/20 flex items-center gap-2 transition-all"
               >
                 <CheckCircle className="w-4 h-4" />
-                <span>{submitting ? "Validation..." : "Valider l'Ordonnance & Continuer"}</span>
+                <span>{submitting ? "Validation..." : "Valider l'Ordonnance et Continuer"}</span>
               </button>
             </div>
           </div>

@@ -134,7 +134,7 @@ export const CAMEG_PRA_LIST = [
   {
     id: "cameg-lome-centrale",
     code: "PRA-LOM-01",
-    name: "CAMEG Togo - Siège Central & PRA Lomé Commune",
+    name: "CAMEG Togo - Siège Central et PRA Lomé Commune",
     shortName: "PRA Lomé Commune (Siège Centrale)",
     region: "Grand Lomé / Maritime",
     city: "Lomé",

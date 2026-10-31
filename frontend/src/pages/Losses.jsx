@@ -55,7 +55,7 @@ export default function Losses() {
         <div>
           <div className="label-tiny mb-1 text-red-600 font-bold">{t("nav_losses")} · GESTION DES REBUTS</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Pertes & Dépréciations
+            Pertes et Dépréciations
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Déclaration réglementaire des unités sorties pour péremption, casse ou vol
@@ -117,7 +117,7 @@ export default function Losses() {
                 <th className="px-4 py-3">Produit</th>
                 <th className="px-4 py-3 text-right">{t("quantity")}</th>
                 <th className="px-4 py-3">{t("motif")}</th>
-                <th className="px-4 py-3">Notes justificatives</th>
+                <th className="px-4 py-3 hidden md:table-cell">Notes justificatives</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -152,7 +152,7 @@ export default function Losses() {
                       {t(l.motif)}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-slate-500 italic">
+                  <td className="px-4 py-3 text-slate-500 italic hidden md:table-cell">
                     {l.notes || "—"}
                   </td>
                 </tr>

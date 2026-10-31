@@ -325,7 +325,7 @@ CORS_ORIGINS="*"
 JWT_SECRET="b3a5c1e7f9d24a8d6c0e2f1b7a9c8d5e4f3b2a1c9d8e7f6a5b4c3d2e1f0a9b8c"
 ADMIN_EMAIL="admin@sgp-pharma.tg"
 ADMIN_PASSWORD="Admin@2026"
-SEED_DEMO="false"
+SEED_DEMO="true"
 """
     with open(DEPLOY_DIR / ".env", "w", encoding="utf-8") as f:
         f.write(env_content)

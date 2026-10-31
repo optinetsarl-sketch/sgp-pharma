@@ -1,6 +1,6 @@
 """Generate the SGP-Pharma user manual presentation PDF.
 
-Output: /app/docs/SGP-Pharma_Manuel_Utilisateur.pdf
+Output: docs/SGP-Pharma_Manuel_Utilisateur.pdf
 Style: 16:9 landscape slides, 1 module per slide with screenshot + bullet points.
 """
 from pathlib import Path
@@ -13,8 +13,12 @@ from reportlab.platypus import (
 )
 from reportlab.lib.enums import TA_LEFT, TA_CENTER
 
-SCREENSHOTS = Path("/app/docs/screenshots")
-OUT_PDF = Path("/app/docs/SGP-Pharma_Manuel_Utilisateur.pdf")
+DOCS_ROOT = Path(__file__).resolve().parent.parent / "docs"
+if not DOCS_ROOT.exists():
+    DOCS_ROOT = Path("/app/docs")
+
+SCREENSHOTS = DOCS_ROOT / "screenshots"
+OUT_PDF = DOCS_ROOT / "SGP-Pharma_Manuel_Utilisateur.pdf"
 
 # 16:9 landscape (PowerPoint-like)
 PAGE_W = 33.87 * cm   # 13.33 inches
@@ -30,15 +34,15 @@ ACCENT = colors.HexColor("#F59E0B")
 
 styles = getSampleStyleSheet()
 title_st = ParagraphStyle("title", parent=styles["Heading1"], fontName="Helvetica-Bold",
-                          fontSize=28, leading=32, textColor=PRIMARY, spaceAfter=4)
+                          fontSize=26, leading=30, textColor=PRIMARY, spaceAfter=3)
 subtitle_st = ParagraphStyle("subtitle", parent=styles["Normal"], fontName="Helvetica",
-                             fontSize=12, leading=16, textColor=MUTED, spaceAfter=8)
+                             fontSize=11, leading=15, textColor=MUTED, spaceAfter=6)
 section_st = ParagraphStyle("section", parent=styles["Heading2"], fontName="Helvetica-Bold",
-                            fontSize=14, leading=18, textColor=TEXT, spaceAfter=6, spaceBefore=4)
+                            fontSize=13, leading=16, textColor=TEXT, spaceAfter=4, spaceBefore=4)
 bullet_st = ParagraphStyle("bullet", parent=styles["Normal"], fontName="Helvetica",
-                           fontSize=10, leading=14, textColor=TEXT, leftIndent=12, bulletIndent=2)
+                           fontSize=9.5, leading=13, textColor=TEXT, leftIndent=10, bulletIndent=2)
 small_st = ParagraphStyle("small", parent=styles["Normal"], fontName="Helvetica",
-                          fontSize=9, leading=11, textColor=MUTED)
+                          fontSize=8.5, leading=11, textColor=MUTED)
 label_st = ParagraphStyle("label", parent=styles["Normal"], fontName="Helvetica-Bold",
                           fontSize=8, leading=10, textColor=PRIMARY, alignment=TA_LEFT)
 cover_title_st = ParagraphStyle("cover_t", parent=styles["Heading1"], fontName="Helvetica-Bold",
@@ -60,7 +64,7 @@ def page_chrome(canvas, doc):
     canvas.setFont("Helvetica-Bold", 9)
     canvas.drawString(1.2 * cm, PAGE_H - 0.42 * cm, "SGP-PHARMA · OPTINET SARLU")
     canvas.setFont("Helvetica", 8)
-    canvas.drawRightString(PAGE_W - 1.2 * cm, PAGE_H - 0.42 * cm, "Manuel utilisateur · v1.1")
+    canvas.drawRightString(PAGE_W - 1.2 * cm, PAGE_H - 0.42 * cm, "Manuel utilisateur · v2.0")
     # footer
     canvas.setFillColor(MUTED)
     canvas.setFont("Helvetica", 8)
@@ -81,34 +85,30 @@ def cover_chrome(canvas, doc):
     canvas.restoreState()
 
 
-def slide(story, title, subtitle, bullets, screenshot, badge=None):
+def slide(story, title, subtitle, bullets, screenshot=None, badge=None):
     """One slide: title + bullets on left, screenshot on right."""
-    # Header
-    story.append(Spacer(1, 0.6 * cm))
+    story.append(Spacer(1, 0.5 * cm))
     if badge:
         story.append(Paragraph(badge, label_st))
     story.append(Paragraph(title, title_st))
     story.append(Paragraph(subtitle, subtitle_st))
 
-    # Two-column body: bullets (left), screenshot (right)
     bullet_paras = []
     for b in bullets:
         if b.startswith("**"):
-            # mini-section header
             bullet_paras.append(Paragraph(b.replace("**", ""), section_st))
         else:
             bullet_paras.append(Paragraph(f"• {b}", bullet_st))
-    bullet_paras.append(Spacer(1, 0.3 * cm))
+    bullet_paras.append(Spacer(1, 0.2 * cm))
 
-    # Screenshot — fit into right cell
     img = None
-    img_path = SCREENSHOTS / screenshot
-    if img_path.exists():
-        # natural width 1600, scale to fit ~18cm wide
-        img = Image(str(img_path), width=18 * cm, height=11.25 * cm)
+    if screenshot:
+        img_path = SCREENSHOTS / screenshot
+        if img_path.exists():
+            img = Image(str(img_path), width=18 * cm, height=11.25 * cm)
 
     body = Table(
-        [[bullet_paras, img if img else Paragraph("(image manquante)", small_st)]],
+        [[bullet_paras, img if img else Paragraph("(Illustration / Capture d'écran)", small_st)]],
         colWidths=[12 * cm, 18.5 * cm],
     )
     body.setStyle(TableStyle([
@@ -125,54 +125,70 @@ def cover(story):
     story.append(Spacer(1, 4 * cm))
     story.append(Paragraph("SGP-Pharma", cover_title_st))
     story.append(Spacer(1, 0.3 * cm))
-    story.append(Paragraph("Système de Gestion Intégrée de Pharmacie", cover_sub_st))
+    story.append(Paragraph("Système de Gestion Intégrée de Pharmacie et Clinique", cover_sub_st))
     story.append(Spacer(1, 1.5 * cm))
-    story.append(Paragraph("Manuel utilisateur — Présentation des modules", cover_meta_st))
+    story.append(Paragraph("Manuel utilisateur complet — Présentation des 18 modules", cover_meta_st))
     story.append(Spacer(1, 1 * cm))
     story.append(Paragraph("OPTINET SARLU — Lomé, Togo", cover_meta_st))
     story.append(Paragraph("Quartier Agoè Cacavéli · Derrière la CEET", cover_meta_st))
     story.append(Paragraph("+228 90 74 84 65  ·  optinetsarl@gmail.com  ·  www.optinet.tg", cover_meta_st))
     story.append(Spacer(1, 0.4 * cm))
-    story.append(Paragraph("Version 1.1 — Mai 2026", cover_meta_st))
+    story.append(Paragraph("Version 2.0 — Octobre 2026", cover_meta_st))
     story.append(PageBreak())
 
 
 def toc(story):
-    """Table of contents slide."""
-    story.append(Spacer(1, 0.6 * cm))
+    """Table of contents slide (2 columns)."""
+    story.append(Spacer(1, 0.5 * cm))
     story.append(Paragraph("SOMMAIRE", label_st))
     story.append(Paragraph("Table des matières", title_st))
-    story.append(Paragraph("13 modules couvrant l'intégralité du cycle de vie pharmaceutique", subtitle_st))
-    story.append(Spacer(1, 0.3 * cm))
+    story.append(Paragraph("18 modules complets couvrant le circuit pharmaceutique, clinique et de laboratoire", subtitle_st))
+    story.append(Spacer(1, 0.2 * cm))
 
-    items = [
-        ("1.", "Connexion & Rôles", "Sécurité JWT et 5 niveaux d'accès"),
-        ("2.", "Tableau de bord", "KPIs temps réel + alertes péremption"),
-        ("3.", "Produits", "Catalogue ~150 médicaments CAMEG"),
-        ("4.", "Stock & Lots", "Gestion par lot avec FEFO"),
-        ("5.", "Réception", "Entrée stock + validation péremption"),
-        ("6.", "Commandes fournisseur", "Bons de commande + PDF A4"),
-        ("7.", "Fournisseurs", "Annuaire CAMEG / Ubipharm / Laborex"),
-        ("8.", "Caisse (POS)", "Vente FEFO + ordonnance + ticket PDF"),
-        ("9.", "Pertes", "Péremption / Casse / Vol"),
-        ("10.", "Rapports", "CA, top ventes, marges, export CSV"),
-        ("11.", "Utilisateurs", "RBAC + reset mot de passe"),
-        ("12.", "Journal d'audit", "Traçabilité légale"),
-        ("13.", "Multi-pharmacies", "Mode SaaS Super Admin OPTINET"),
+    col1_items = [
+        ("1.", "Connexion et Rôles", "Sécurité JWT et 6 rôles RBAC"),
+        ("2.", "Tableau de bord", "KPIs temps réel et alertes péremption"),
+        ("3.", "Produits et DCI", "Catalogue ~150 médicaments CAMEG"),
+        ("4.", "Stock et Lots (FEFO)", "Gestion par lot, péremption et statuts"),
+        ("5.", "Réception Arrivages", "Entrée stock et validation péremption"),
+        ("6.", "Commandes Fournisseur", "Bons de commande et PDF A4"),
+        ("7.", "Fournisseurs et Grossistes", "Annuaire CAMEG, Ubipharm, Laborex"),
+        ("8.", "Guichet Conseil (Pré-ventes)", "File d'attente et tickets clients"),
+        ("9.", "Caisse POS et Vente", "Encaissement FEFO et ticket thermique"),
     ]
-    rows = []
-    for n, name, desc in items:
-        rows.append([
-            Paragraph(f"<b>{n}</b>", section_st),
-            Paragraph(f"<b>{name}</b>", section_st),
-            Paragraph(desc, small_st),
-        ])
-    tbl = Table(rows, colWidths=[1.5 * cm, 7 * cm, 22 * cm])
+    col2_items = [
+        ("10.", "Actes et Soins Médicaux", "Prestations cliniques et disciplines"),
+        ("11.", "Laboratoire et Analyses", "Examens médicaux et disciplines dynamiques"),
+        ("12.", "Journal des Ventes", "Historique et réimpression tickets"),
+        ("13.", "Pertes et Dépréciations", "Péremption, casse et vol"),
+        ("14.", "Rapports d'Activité", "CA, top ventes, marges et export CSV"),
+        ("15.", "Configuration Officine", "Marque blanche, logo, maps et mentions"),
+        ("16.", "Gestion Utilisateurs", "Comptes opérateurs et reset mot de passe"),
+        ("17.", "Journal d'Audit", "Traçabilité légale immuable"),
+        ("18.", "Multi-pharmacies SaaS", "Supervision réseau et isolation stricte"),
+    ]
+
+    def render_col(items):
+        rows = []
+        for n, name, desc in items:
+            rows.append([
+                Paragraph(f"<b>{n}</b>", section_st),
+                Paragraph(f"<b>{name}</b><br/><font color='#6B7280' size='8'>{desc}</font>", small_st),
+            ])
+        t = Table(rows, colWidths=[1.2 * cm, 13.5 * cm])
+        t.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#E5E7EB")),
+        ]))
+        return t
+
+    tbl = Table([[render_col(col1_items), render_col(col2_items)]], colWidths=[15 * cm, 15.5 * cm])
     tbl.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#E5E7EB")),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 0),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
     ]))
     story.append(tbl)
     story.append(PageBreak())
@@ -190,380 +206,406 @@ def build():
 
     story = []
 
-    # --- Cover (no chrome, full green)
+    # Cover & TOC
     cover(story)
-    # --- TOC
     toc(story)
 
-    # --- Slide 1: Login & Roles
+    # 1: Login & Roles
     slide(
         story,
-        "Connexion & Gestion des rôles",
-        "Authentification sécurisée par JWT — 5 niveaux d'accès distincts.",
+        "Connexion et Gestion des rôles",
+        "Authentification sécurisée par JWT — 6 niveaux d'accès distincts.",
         [
-            "**Comptes de démonstration**",
-            "Super Admin (OPTINET) — optinet@sgp-pharma.tg",
-            "Admin Pharmacie — admin@sgp-pharma.tg",
-            "Pharmacien — pharmacien@sgp-pharma.tg",
-            "Caissier — caissier@sgp-pharma.tg",
-            "Magasinier — magasinier@sgp-pharma.tg",
-            "**Sécurité**",
-            "Mots de passe chiffrés (bcrypt)",
-            "Verrouillage après 5 tentatives (15 min)",
-            "Tokens JWT 8 h + refresh 7 jours",
-            "Switch FR / EN en bas de la barre latérale",
-        ],
-        "01_dashboard.png",  # using dashboard as it's first; login screen could be separate
-        badge="MODULE 1 — AUTHENTIFICATION",
-    )
-
-    # --- Slide 2: Dashboard
-    slide(
-        story,
-        "Tableau de bord",
-        "Vue d'ensemble en temps réel : ventes, stock, alertes critiques.",
-        [
-            "**KPIs principaux (cartes vertes)**",
-            "CA du jour & du mois (FCFA)",
-            "Valeur totale du stock + nombre d'unités",
-            "Nombre d'ordonnances servies aujourd'hui",
-            "**Alertes critiques (rouge / orange)**",
-            "Lots expirés (rouge) — à retirer immédiatement",
-            "Expirations < 30 jours (orange) — à écouler",
-            "Produits en stock faible (sous le seuil)",
-            "**Visualisation**",
-            "Graphique ventes des 7 derniers jours",
-            "Liste alertes péremption détaillée",
-            "Tableau produits sous le seuil d'alerte",
+            "**Rôles utilisateurs (RBAC)**",
+            "Super Admin (OPTINET) — Supervision globale multi-officines",
+            "Admin Pharmacie — Gestion complète de l'officine",
+            "Pharmacien — Validation d'ordonnances et catalogue",
+            "Opérateur Conseil — Guichet de saisie et devis pré-ventes",
+            "Caissier — Encaissement POS et clôture de caisse",
+            "Magasinier — Réception des commandes et gestion des lots",
+            "**Sécurité et Conformité**",
+            "Mots de passe hachés avec algorithme bcrypt",
+            "Verrouillage automatique après 5 tentatives infructueuses",
+            "Tokens JWT sécurisés 8h et refresh token 7 jours",
         ],
         "01_dashboard.png",
-        badge="MODULE 2 — DASHBOARD",
+        badge="MODULE 1 — AUTHENTIFICATION ET RBAC",
     )
 
-    # --- Slide 3: Products
+    # 2: Dashboard
     slide(
         story,
-        "Produits — Catalogue CAMEG",
-        "~150 médicaments essentiels couvrant tous les besoins du marché togolais.",
+        "Tableau de bord de pilotage",
+        "Vue d'ensemble en temps réel : chiffre d'affaires, stock et alertes critiques.",
         [
-            "**Données par produit**",
-            "Code-barres, nom commercial, DCI",
-            "Forme pharmaceutique (cp, sirop, gélule…)",
-            "Catégorie (Antibiotiques, Antipaludiques…)",
-            "Prix de vente, seuil d'alerte stock",
-            "Indicateur ordonnance requise (Oui/Non)",
-            "**Recherche intelligente**",
-            "Recherche par nom, DCI ou code-barres",
-            "**Catégories couvertes**",
-            "Antalgiques, Antibiotiques, Antipaludiques",
-            "Cardiologie, Diabète, Gastro, Respiratoire",
-            "Dermato, Gynéco, Pédiatrie, Vitamines, Matériel",
-            "VIH/TB, Antiparasitaires, Anesthésiques, Solutions",
+            "**Indicateurs clés (KPIs temps réel)**",
+            "Chiffre d'affaires journalier et mensuel (FCFA)",
+            "Valeur financière globale du stock et nombre de références",
+            "Nombre d'ordonnances et pré-ventes enregistrées",
+            "**Alertes critiques prioritaires**",
+            "Lots périmés (alerte rouge) — retrait immédiat",
+            "Péremptions imminentes sous 30 et 90 jours (alerte orange)",
+            "Ruptures et produits sous le seuil de sécurité",
+            "**Graphiques et tendances**",
+            "Courbe d'activité des 7 derniers jours",
+            "Raccourcis rapides vers Vente (F2) et Inventaire",
+        ],
+        "01_dashboard.png",
+        badge="MODULE 2 — TABLEAU DE BORD",
+    )
+
+    # 3: Products
+    slide(
+        story,
+        "Catalogue Produits et DCI",
+        "Nomenclature CAMEG Togo et gestion intégrale des médicaments et consommables.",
+        [
+            "**Fiche produit complète**",
+            "Nom commercial, Dénomination Commune Internationale (DCI)",
+            "Forme pharmaceutique (comprimé, sirop, injectable, gélule)",
+            "Catégories thérapeutiques officielles CAMEG",
+            "Prix d'achat, prix de vente public et seuil d'alerte",
+            "Mention obligatoire d'ordonnance médicale",
+            "**Outils et productivité**",
+            "Générateur et lecteur de codes-barres EAN-13",
+            "Recherche instantanée multicritère",
+            "Importation et mise à jour collective de la mercuriale",
         ],
         "02_produits.png",
-        badge="MODULE 3 — PRODUITS",
+        badge="MODULE 3 — PRODUITS ET DCI",
     )
 
-    # --- Slide 4: Stock & Lots
+    # 4: Stock & Lots
     slide(
         story,
-        "Stock & Lots — Traçabilité FEFO",
-        "Vue par lot avec date de péremption et badges colorés.",
+        "Stock et Lots — Traçabilité FEFO",
+        "Gestion stricte par numéro de lot avec priorisation FEFO.",
         [
             "**Badges FEFO automatiques**",
-            "🟢 OK — péremption > 90 jours",
-            "🟡 Bientôt — entre 0 et 90 jours",
-            "🔴 Expiré — péremption dépassée",
-            "**Informations par lot**",
-            "Numéro de lot fabricant",
-            "Date de péremption + jours restants",
-            "Quantité actuelle / prix d'achat unitaire",
-            "Statut : Actif / Bloqué / Épuisé",
-            "**Actions**",
-            "Bloquer un lot (qualité douteuse)",
-            "Filtrage par produit ou texte libre",
-            "Tri automatique par péremption croissante",
+            "🟢 Conforme : péremption supérieure à 90 jours",
+            "🟡 À surveiller : péremption entre 0 et 90 jours",
+            "🔴 Expiré : péremption dépassée, vente automatiquement bloquée",
+            "**Traçabilité par lot fabricant**",
+            "Numéro de lot, date d'expiration exacte et jours restants",
+            "Quantité disponible en rayon et valeur d'achat",
+            "Statuts de lot : Actif, Bloqué (quarantaine), Épuisé",
+            "**Actions opérateur**",
+            "Blocage préventif d'un lot défectueux ou rappelé",
+            "Détection rapide des lots prioritaires pour écoulement",
         ],
         "03_stock_lots.png",
-        badge="MODULE 4 — STOCK & LOTS",
+        badge="MODULE 4 — STOCK ET LOTS",
     )
 
-    # --- Slide 5: Reception
+    # 5: Reception
     slide(
         story,
-        "Réception fournisseur",
-        "Entrée de stock multi-lignes avec validation stricte de péremption.",
+        "Réception Fournisseur et Arrivages",
+        "Entrée en stock multi-lignes avec contrôle réglementaire de péremption.",
         [
-            "**Saisie obligatoire par ligne**",
-            "Produit (sélection dans catalogue)",
-            "Numéro de lot fabricant",
-            "Date de péremption (refus si < aujourd'hui)",
-            "Prix d'achat unitaire",
-            "Quantité reçue",
-            "**Règles métier**",
-            "Blocage immédiat si lot déjà expiré",
-            "Création automatique de mouvement ENTREE_ACHAT",
-            "Lien optionnel vers un bon de commande",
-            "**Productivité**",
-            "Réception multi-lignes sur une seule transaction",
-            "Sélection fournisseur en haut du formulaire",
+            "**Contrôle strict à l'arrivée**",
+            "Sélection du grossiste répartiteur ou de la centrale",
+            "Saisie obligatoire du numéro de lot fabricant",
+            "Vérification de la date de péremption (rejet si expirée)",
+            "Enregistrement du prix d'achat et des quantités livrées",
+            "**Automatisation des écritures**",
+            "Incrémentation instantanée des stocks disponibles",
+            "Génération immuable du mouvement ENTREE_ACHAT",
+            "Rapprochement optionnel avec un bon de commande",
+            "Répertoire chronologique de tous les arrivages",
         ],
         "04_reception.png",
-        badge="MODULE 5 — RÉCEPTION",
+        badge="MODULE 5 — RÉCEPTION FOURNISSEUR",
     )
 
-    # --- Slide 6: Orders
+    # 6: Orders
     slide(
         story,
-        "Bons de commande fournisseur",
-        "Gestion des commandes avec génération PDF A4 imprimable.",
+        "Commandes Fournisseurs et Répartiteurs",
+        "Gestion des approvisionnements avec génération de bons de commande PDF A4.",
         [
-            "**Cycle de commande**",
+            "**Cycle de vie de la commande**",
             "Brouillon → Validée → Reçue → Clôturée",
-            "Modification de statut depuis la liste",
-            "**Génération PDF A4**",
-            "Téléchargement instantané (icône)",
-            "En-tête vert OPTINET + nom pharmacie",
-            "Coordonnées fournisseur + date + statut",
-            "Tableau articles avec total HT en FCFA",
-            "Zone signature pharmacie + fournisseur",
-            "**Données calculées**",
-            "Total automatique (Σ qté × prix)",
-            "Audit log à chaque changement de statut",
+            "Mise à jour rapide des statuts depuis le tableau de bord",
+            "**Bon de commande officiel PDF A4**",
+            "En-tête officiel aux couleurs et logo de la pharmacie",
+            "Coordonnées du fournisseur, référence et date d'émission",
+            "Tableau détaillé des articles avec totaux HT et TTC",
+            "Espace réservé pour signatures et cachets officiels",
+            "Calcul automatique des montants et traçabilité",
         ],
         "05_commandes.png",
-        badge="MODULE 6 — COMMANDES",
+        badge="MODULE 6 — COMMANDES FOURNISSEUR",
     )
 
-    # --- Slide 7: Suppliers
+    # 7: Suppliers
     slide(
         story,
-        "Fournisseurs",
-        "Annuaire des grossistes pharmaceutiques.",
+        "Fournisseurs et Grossistes Répartiteurs",
+        "Annuaire complet des centrales d'achats et laboratoires partenaires.",
         [
-            "**Pré-chargés (démo)**",
-            "CAMEG Togo (centrale d'achat nationale)",
-            "UBIPHARM Togo",
-            "COPHARMA",
-            "Laborex Togo",
-            "**Champs gérés**",
-            "Raison sociale, contact, email",
-            "Téléphone, adresse complète",
-            "**Actions**",
-            "Création / modification / suppression",
-            "Liaison aux lots (traçabilité origine)",
-            "Liaison aux bons de commande",
+            "**Partenaires intégrés**",
+            "CAMEG Togo (Centrale d'Achat des Médicaments Essentiels)",
+            "UBIPHARM Togo, LABOREX Togo, COPHARMA",
+            "Laboratoires privés et grossistes agréés",
+            "**Fiche fournisseur détaillée**",
+            "Raison sociale, contact délégué, téléphone et email",
+            "Délai moyen de livraison et conditions de règlement",
+            "Liaison directe avec l'historique des réceptions et commandes",
         ],
         "06_fournisseurs.png",
-        badge="MODULE 7 — FOURNISSEURS",
+        badge="MODULE 7 — FOURNISSEURS ET GROSSISTES",
     )
 
-    # --- Slide 8: POS
+    # 8: Presales
     slide(
         story,
-        "Caisse (POS) — Vente avec FEFO automatique",
-        "Interface optimisée pour le caissier — sélection de lot intelligente.",
+        "Guichet Saisie et Conseil (Pré-ventes)",
+        "Séparation optimale du flux conseil et de l'encaissement en caisse.",
         [
-            "**Recherche & ajout panier**",
-            "Recherche par nom / DCI / code-barres",
-            "Clic = ajout au panier (+1)",
-            "Indicateur 📄 ordonnance + stock disponible",
-            "**Algorithme FEFO**",
-            "Sélection automatique du lot le plus proche péremption",
-            "Lots expirés exclus systématiquement",
-            "Décrémentation atomique (race-safe)",
-            "**Ordonnance (si requise)**",
-            "Référence texte + photo (upload base64)",
-            "Prévisualisation miniature avant validation",
-            "**Ticket de caisse**",
-            "PDF thermique 80mm téléchargeable",
-            "Impression directe navigateur",
-            "Modes : Espèces / Carte / Mobile money",
+            "**Flux optimisé de vente en officine**",
+            "L'opérateur au guichet accueille le client et prépare le panier",
+            "Ajout des médicaments, actes de soins et analyses",
+            "Validation de l'ordonnance médicale si requise",
+            "**Génération du ticket client**",
+            "Création instantanée d'un numéro de ticket d'attente (ex: #0042)",
+            "Remise du numéro au client pour paiement",
+            "**Avantages organisationnels**",
+            "Désengorgement de la file d'attente en caisse",
+            "Le caissier rappelle le ticket en 1 clic pour encaissement",
         ],
         "07_caisse_pos.png",
-        badge="MODULE 8 — CAISSE POS",
+        badge="MODULE 8 — GUICHET SAISIE ET CONSEIL",
     )
 
-    # --- Slide 9: Losses
+    # 9: POS
     slide(
         story,
-        "Pertes & Casses",
+        "Caisse POS et Encaissement",
+        "Point de vente ultra-rapide avec décrémentation FEFO et ticket thermique.",
+        [
+            "**Encaissement fluide et sécurisé**",
+            "Vente directe au comptoir ou rappel d'une pré-vente par ticket",
+            "Sélection FEFO automatisée excluant les lots expirés",
+            "Modes de paiement : Espèces, Mobile Money (T-Money/Flooz), Carte",
+            "Calculateur de monnaie rendu et coupures de billets",
+            "**Impression de ticket de caisse**",
+            "Format ticket thermique 80mm prêt pour imprimante POS",
+            "Informations complètes de l'officine et mentions fiscales",
+            "Sécurisation des opérations et décrémentation atomique",
+        ],
+        "07_caisse_pos.png",
+        badge="MODULE 9 — CAISSE POS ET ENCAISSEMENT",
+    )
+
+    # 10: Acts
+    slide(
+        story,
+        "Actes et Soins Médicaux",
+        "Gestion des prestations cliniques et infirmières dispensées à l'officine.",
+        [
+            "**Prestations cliniques répertoriées**",
+            "Injections (IM, IV, SC), perfusions et surveillances",
+            "Pansements simples, pansements complexes et brûlures",
+            "Prise de constantes : tension artérielle, glycémie capillaire",
+            "Aérosolthérapie, nébulisations et soins d'urgence",
+            "**Disciplines et tarification**",
+            "Organisation par disciplines : Soins Infirmiers, Urgences, etc.",
+            "Tarifs officiels en FCFA et code prestation unique",
+            "Intégration directe au panier de caisse et aux tickets",
+        ],
+        "07_caisse_pos.png",
+        badge="MODULE 10 — ACTES ET SOINS MÉDICAUX",
+    )
+
+    # 11: Lab
+    slide(
+        story,
+        "Laboratoire et Examens Médicaux",
+        "Gestion complète des analyses biologiques avec disciplines dynamiques.",
+        [
+            "**Examens médicaux courants intégrés**",
+            "Hématologie : NFS, Numération Blanche (NB), VS, Groupe RH",
+            "Parasitologie : Goutte Épaisse (GE), KOP, Widal/Felix",
+            "Biochimie : Glycémie, Urée, Créatinine, Transaminases (ALAT/ASAT), Ionogramme",
+            "Sérologie : SRV (VIH), AgHBs, AgHCV, TPHA/VDRL, Test HP",
+            "**Disciplines dynamiques personnalisables**",
+            "Bouton dédié Disciplines : ajout, modification et suppression",
+            "Filtrage instantané par catégorie dans le catalogue",
+            "Facturation immédiate au comptoir avec récapitulatif clair",
+        ],
+        "07_caisse_pos.png",
+        badge="MODULE 11 — LABORATOIRE ET ANALYSES",
+    )
+
+    # 12: Sales History
+    slide(
+        story,
+        "Journal des Ventes et Caisse",
+        "Consultation chronologique des encaissements et réimpression thermique.",
+        [
+            "**Traçabilité financière détaillée**",
+            "Historique complet par date, mois et tranche horaire",
+            "Filtre par vacations : Matin (07h-12h30), Après-midi, Soirée et Garde",
+            "Recherche par numéro de ticket, nom du client ou médicament",
+            "**Contrôle et clôture**",
+            "Totaux encaissés par mode (Espèces vs Mobile Money)",
+            "Visualisation du détail complet de chaque panier servi",
+            "Réimpression du ticket thermique à tout moment",
+        ],
+        "07_caisse_pos.png",
+        badge="MODULE 12 — JOURNAL DES VENTES",
+    )
+
+    # 13: Losses
+    slide(
+        story,
+        "Pertes et Dépréciations",
         "Justification fiscale et comptable des sorties non-vendeuses.",
         [
-            "**3 motifs disponibles**",
-            "Péremption — auto-détectable nightly",
-            "Casse — produit endommagé physiquement",
-            "Vol — disparition non justifiée",
-            "**Effets sur le système**",
-            "Décrémentation immédiate du lot concerné",
-            "Création de mouvement PERTE_* (immuable)",
-            "Audit log avec utilisateur + horodatage",
-            "**Cas d'usage**",
-            "Justification fiscale auprès du CAMEG",
-            "Suivi des pertes par motif sur la période",
-            "Identification des produits à risque (vol récurrent)",
+            "**Motifs réglementaires reconnus**",
+            "Péremption — détection automatisée des lots expirés",
+            "Casse — avarie matérielle constatée en rayon",
+            "Vol — disparition injustifiée lors de l'inventaire",
+            "**Conséquences sur l'inventaire**",
+            "Sortie immédiate du stock avec motif d'ajustement",
+            "Génération d'écritures PERTE immuables",
+            "Enregistrement de l'opérateur et horodatage légal",
+            "Dossier de justification pour contrôles et bilans annuels",
         ],
         "08_pertes.png",
-        badge="MODULE 9 — PERTES",
+        badge="MODULE 13 — PERTES ET DÉPRÉCIATIONS",
     )
 
-    # --- Slide 10: Reports
+    # 14: Reports
     slide(
         story,
-        "Rapports & Analyses",
-        "3 rapports clés avec export CSV.",
+        "Rapports d'Activité et Rentabilité",
+        "Synthèses de direction, marges commerciales et exports comptables.",
         [
-            "**Onglet Historique des ventes**",
-            "Liste détaillée période (date, client, total, mode)",
-            "Export CSV pour comptabilité",
-            "**Onglet Top produits**",
-            "Classement quantité vendue + CA",
-            "Top 10 par défaut (configurable)",
-            "**Onglet Marge brute**",
-            "Calcul marge = CA − Coût (par produit)",
-            "Marge en FCFA + en pourcentage",
-            "Optimisation MongoDB aggregation $lookup",
-            "**Filtres**",
-            "Par période (date début / fin)",
-            "Pagination automatique",
+            "**Rapports financiers complets**",
+            "Synthèse financière : Chiffre d'affaires, panier moyen et ordonnances",
+            "Top 10 des médicaments et produits phares en volume et en valeur",
+            "Marges brutes calculées par produit (CA − Coût d'achat)",
+            "État de santé du stock et pertes déclarées",
+            "**Édition et conformité**",
+            "Génération du rapport d'activité complet imprimable A4",
+            "Espace de signature et cachet officiel de l'officine",
+            "Export des données en format CSV pour tableur",
         ],
         "09_rapports.png",
-        badge="MODULE 10 — RAPPORTS",
+        badge="MODULE 14 — RAPPORTS ET ANALYSES",
     )
 
-    # --- Slide 11: Users
+    # 15: Pharmacy Setup
     slide(
         story,
-        "Gestion des utilisateurs",
-        "Création de comptes + réinitialisation mots de passe sécurisée.",
+        "Configuration de l'Officine (Marque Blanche)",
+        "Personnalisation intégrale de l'identité de la pharmacie.",
         [
-            "**Création utilisateur (Admin)**",
-            "Email unique + nom complet",
-            "Mot de passe initial (≥ 6 caractères)",
-            "Rôle : Admin / Pharmacien / Caissier / Magasinier",
-            "Pharmacie d'affectation (Super Admin uniquement)",
-            "**Réinitialisation mot de passe (icône clé)**",
-            "Génération automatique pass temporaire fort",
-            "Affichage UNE SEULE FOIS dans une modale",
-            "Bouton de copie vers presse-papier",
-            "**Activation / désactivation**",
-            "Bouton Actif / Inactif (toggle)",
-            "Suppression avec confirmation",
-        ],
-        "10_utilisateurs.png",
-        badge="MODULE 11 — UTILISATEURS",
-    )
-
-    # --- Slide 12: Audit Log
-    slide(
-        story,
-        "Journal d'audit",
-        "Traçabilité légale de toutes les actions critiques.",
-        [
-            "**Actions journalisées**",
-            "Connexions / déconnexions",
-            "Création / modification / suppression de produits",
-            "Réceptions de stock",
-            "Ventes (montant, panier)",
-            "Pertes (motif, quantité)",
-            "Resets de mots de passe",
-            "Changements de statut commandes",
-            "**Données capturées**",
-            "Utilisateur (email + ID), horodatage UTC",
-            "Adresse IP, action, entité concernée, détails",
-            "**Conformité**",
-            "Conservation immuable (insert-only)",
-            "Filtrage par utilisateur ou action",
-        ],
-        "11_audit_log.png",
-        badge="MODULE 12 — AUDIT LOG",
-    )
-
-    # --- Slide 13: Pharmacies (Multi-tenant)
-    slide(
-        story,
-        "Multi-pharmacies — Mode SaaS",
-        "Architecture multi-tenant : OPTINET peut servir plusieurs officines.",
-        [
-            "**Rôle Super Admin (OPTINET)**",
-            "Voit toutes les pharmacies du système",
-            "Crée / modifie / supprime des pharmacies",
-            "Crée des admins par pharmacie",
-            "**Rôle Admin Pharmacie**",
-            "Vue limitée à sa propre pharmacie",
-            "Affichage du nom en bandeau vert (sidebar)",
-            "**Isolation stricte des données**",
-            "Produits, stocks, ventes, utilisateurs cloisonnés",
-            "Cross-tenant access → erreur 404",
-            "**Données par pharmacie**",
-            "Nom, adresse, téléphone, email",
-            "N° d'agrément officiel, devise (FCFA)",
-            "Statut Actif / Inactif",
+            "**Identité visuelle et commerciale**",
+            "Nom de l'officine, logo haute résolution et slogan",
+            "Numéro d'agrément ministériel officiel",
+            "Identifiants fiscaux : NIF et numéro RCCM",
+            "**Coordonnées et localisation**",
+            "Adresse physique exacte, ville et préfecture",
+            "Téléphones d'urgence et de garde, email officiel",
+            "Lien GPS Google Maps pour guidage des patients",
+            "Pied de ticket personnalisé (remerciements, mentions légales)",
         ],
         "12_pharmacies.png",
-        badge="MODULE 13 — MULTI-PHARMACIES",
+        badge="MODULE 15 — CONFIGURATION DE L'OFFICINE",
     )
 
-    # --- Bonus slide: Super Admin view
+    # 16: Users
     slide(
         story,
-        "Vue Super Admin OPTINET",
-        "Tableau de bord agrégé sur l'ensemble du parc de pharmacies.",
+        "Gestion des Utilisateurs et Rôles",
+        "Création des comptes opérateurs et réinitialisation sécurisée.",
         [
-            "**Bandeau jaune Mode Super Admin**",
-            "Visible dans la barre latérale gauche",
-            "Indique « Vue toutes pharmacies »",
-            "**Données agrégées**",
-            "CA cumulé toutes pharmacies confondues",
-            "Valeur stock totale du réseau",
-            "Alertes péremption consolidées",
-            "**Accès**",
-            "Page Pharmacies — gestion complète",
-            "Gestion utilisateurs cross-pharmacie",
-            "Audit log global",
-            "**Cas d'usage**",
-            "OPTINET supervise un réseau (Lomé, Kara…)",
-            "Onboarding rapide d'une nouvelle officine",
+            "**Création de profil opérateur**",
+            "Nom complet, email professionnel unique et mot de passe initial",
+            "Attribution d'un rôle précis selon la fonction exercée",
+            "Affectation de pharmacie pour les gestionnaires multi-sites",
+            "**Sécurité renforcée des accès**",
+            "Réinitialisation sécurisée par génération d'un mot de passe fort",
+            "Affichage unique et copie directe dans le presse-papiers",
+            "Désactivation instantanée d'un compte en cas de départ",
         ],
-        "13_super_admin_dashboard.png",
-        badge="VUE SUPER ADMIN",
+        "10_utilisateurs.png",
+        badge="MODULE 16 — GESTION DES UTILISATEURS",
     )
 
-    # --- Final slide: Resources
+    # 17: Audit Log
+    slide(
+        story,
+        "Journal d'Audit et Sécurité",
+        "Traçabilité légale et immuable de toutes les actions sensibles.",
+        [
+            "**Événements consignés**",
+            "Connexions, échecs de connexion et déconnexions",
+            "Créations, modifications et suppressions de produits et tarifs",
+            "Entrées en stock, réceptions et modifications de lots",
+            "Ventes validées, devis et déclarations de rebuts",
+            "Changements de mot de passe et droits administrateurs",
+            "**Données enregistrées**",
+            "Identité de l'auteur, adresse IP, horodatage exact UTC",
+            "Type d'action, ressource impactée et détails de l'opération",
+        ],
+        "11_audit_log.png",
+        badge="MODULE 17 — JOURNAL D'AUDIT",
+    )
+
+    # 18: Multi-pharmacies SaaS
+    slide(
+        story,
+        "Architecture Multi-pharmacies SaaS",
+        "Supervision centrale pour réseaux d'officines et centrales de gestion.",
+        [
+            "**Capacités Super Admin (OPTINET)**",
+            "Supervision globale de l'ensemble du réseau pharmaceutique",
+            "Création et intégration rapide d'une nouvelle officine",
+            "Indicateurs consolidés : CA total et valeur du stock du parc",
+            "**Cloisonnement étanche des données**",
+            "Chaque pharmacie dispose d'une étanchéité stricte de ses données",
+            "Aucune fuite de données entre officines clientes",
+            "Indépendance des catalogues, tarifs, stocks et utilisateurs",
+        ],
+        "13_super_admin_dashboard.png",
+        badge="MODULE 18 — MULTI-PHARMACIES SAAS",
+    )
+
+    # Final slide: Contact & Support
     story.append(Spacer(1, 1 * cm))
-    story.append(Paragraph("MERCI", label_st))
-    story.append(Paragraph("Questions ?", title_st))
+    story.append(Paragraph("SUPPORT ET ASSISTANCE", label_st))
+    story.append(Paragraph("OPTINET SARLU", title_st))
     story.append(Spacer(1, 0.3 * cm))
-    story.append(Paragraph("OPTINET SARLU — Solutions Réseaux & Télécommunications", subtitle_st))
+    story.append(Paragraph("Solutions Réseaux, Logiciels et Télécommunications", subtitle_st))
     story.append(Spacer(1, 0.6 * cm))
     info_rows = [
-        ["Porteur du projet", "OPTINET SARLU"],
-        ["Responsable", "NABINE Tassounti — Directeur Général"],
-        ["Adresse", "Quartier Agoè Cacavéli, derrière la CEET — Lomé, Togo"],
-        ["Téléphone", "+228 90 74 84 65  ·  +228 99 05 84 71"],
-        ["Email", "optinetsarl@gmail.com"],
-        ["Site web", "www.optinet.tg"],
-        ["RCCM / NIF", "TG-LFW-01-2026-B13-00831  ·  1002114979"],
-        ["Version actuelle", "1.1 — Mai 2026"],
-        ["Stack technique", "FastAPI + MongoDB + React + Tailwind"],
-        ["Architecture", "Multi-tenant SaaS  ·  ~150 médicaments CAMEG"],
-        ["Compte démo Super Admin", "optinet@sgp-pharma.tg / Optinet@2026"],
-        ["Compte démo Admin", "admin@sgp-pharma.tg / Admin@2026"],
+        ["Éditeur de la solution", "OPTINET SARLU"],
+        ["Direction Générale", "NABINE Tassounti"],
+        ["Siège social", "Quartier Agoè Cacavéli, derrière la CEET — Lomé, Togo"],
+        ["Ligne d'assistance", "+228 90 74 84 65  ·  +228 99 05 84 71"],
+        ["Messagerie électronique", "optinetsarl@gmail.com"],
+        ["Portail web officiel", "www.optinet.tg"],
+        ["Identifiants légaux", "RCCM : TG-LFW-01-2026-B13-00831  ·  NIF : 1002114979"],
+        ["Version du système", "SGP-Pharma v2.0 (Octobre 2026)"],
+        ["Conformité", "Nomenclature CAMEG Togo  ·  FEFO Intégré  ·  Multi-tenants SaaS"],
     ]
     info_tbl = Table(info_rows, colWidths=[8 * cm, 22 * cm])
     info_tbl.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
         ("FONTNAME", (1, 0), (1, -1), "Helvetica"),
-        ("FONTSIZE", (0, 0), (-1, -1), 11),
+        ("FONTSIZE", (0, 0), (-1, -1), 10.5),
         ("TEXTCOLOR", (0, 0), (0, -1), PRIMARY),
         ("TEXTCOLOR", (1, 0), (1, -1), TEXT),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ("TOPPADDING", (0, 0), (-1, -1), 7),
         ("LINEBELOW", (0, 0), (-1, -1), 0.3, colors.HexColor("#E5E7EB")),
     ]))
     story.append(info_tbl)
 
-    # Use special canvas: cover_chrome on first page, page_chrome on others
     def first_page(canvas, doc):
         cover_chrome(canvas, doc)
 

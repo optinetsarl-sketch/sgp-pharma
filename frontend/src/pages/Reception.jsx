@@ -528,7 +528,7 @@ export default function Reception() {
           <div>
             <div className="label-tiny mb-0.5 text-primary font-bold">RÉPERTOIRE DES ARRIVAGES</div>
             <h2 className="font-heading text-lg sm:text-xl font-black text-slate-900">
-              Lots Reçus en Rayon & Traçabilité
+              Lots Reçus en Rayon et Traçabilité
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Consultez et triez tous les lots enregistrés en pharmacie par numéro de lot, péremption ou produit

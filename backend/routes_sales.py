@@ -25,6 +25,61 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
         for it in payload.items:
             if it.quantity <= 0:
                 raise HTTPException(400, "Quantité invalide")
+
+            # Check if this item is a Medical Act (Prestation / Soin sans stock)
+            act = None
+            if it.is_act or (it.product_id and it.product_id.startswith("act_")):
+                act = await db.medical_acts.find_one({"id": it.product_id}, {"_id": 0})
+            if not act and not (await db.products.find_one({"id": it.product_id}, {"_id": 1})):
+                act = await db.medical_acts.find_one({"id": it.product_id}, {"_id": 0})
+
+            if act or it.is_act:
+                if act:
+                    assert_same_pharmacy(user, act)
+                act_name = it.act_name or (act.get("name") if act else "Acte Médical")
+                unit_price = it.unit_price if it.unit_price is not None else (act.get("price", 0.0) if act else 0.0)
+                sub = round(it.quantity * unit_price, 2)
+                total += sub
+                sale_items.append({
+                    "product_id": it.product_id,
+                    "batch_id": None,
+                    "batch_number": "ACTE",
+                    "quantity": it.quantity,
+                    "unit_price": unit_price,
+                    "subtotal": sub,
+                    "is_act": True,
+                    "act_name": act_name,
+                    "nom_commercial": act_name,
+                })
+                continue
+
+            # Check if this item is a Laboratory Exam (Analyse médicale sans stock)
+            lab = None
+            if it.is_lab or (it.product_id and (it.product_id.startswith("lab_") or it.product_id.startswith("LAB-"))):
+                lab = await db.lab_exams.find_one({"id": it.product_id}, {"_id": 0})
+            if not lab and not (await db.products.find_one({"id": it.product_id}, {"_id": 1})):
+                lab = await db.lab_exams.find_one({"id": it.product_id}, {"_id": 0})
+
+            if lab or it.is_lab:
+                if lab:
+                    assert_same_pharmacy(user, lab)
+                lab_name = it.lab_name or (lab.get("name") if lab else "Examen de Laboratoire")
+                unit_price = it.unit_price if it.unit_price is not None else (lab.get("price", 0.0) if lab else 0.0)
+                sub = round(it.quantity * unit_price, 2)
+                total += sub
+                sale_items.append({
+                    "product_id": it.product_id,
+                    "batch_id": None,
+                    "batch_number": "LAB",
+                    "quantity": it.quantity,
+                    "unit_price": unit_price,
+                    "subtotal": sub,
+                    "is_lab": True,
+                    "lab_name": lab_name,
+                    "nom_commercial": lab_name,
+                })
+                continue
+
             product = await db.products.find_one({"id": it.product_id}, {"_id": 0})
             assert_same_pharmacy(user, product)
 
@@ -119,18 +174,19 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
         await db.sales.insert_one(sale_doc)
         sale_doc.pop("_id", None)
         for si in sale_items:
-            await db.stock_movements.insert_one({
-                "id": gen_id(),
-                "pharmacy_id": sale_doc["pharmacy_id"],
-                "batch_id": si["batch_id"],
-                "product_id": si["product_id"],
-                "type": "SORTIE_VENTE",
-                "quantity": -si["quantity"],
-                "created_at": now_utc().isoformat(),
-                "user_id": user["id"],
-                "reference_id": sale_id,
-                "notes": "Vente",
-            })
+            if not si.get("is_act") and not si.get("is_lab"):
+                await db.stock_movements.insert_one({
+                    "id": gen_id(),
+                    "pharmacy_id": sale_doc["pharmacy_id"],
+                    "batch_id": si["batch_id"],
+                    "product_id": si["product_id"],
+                    "type": "SORTIE_VENTE",
+                    "quantity": -si["quantity"],
+                    "created_at": now_utc().isoformat(),
+                    "user_id": user["id"],
+                    "reference_id": sale_id,
+                    "notes": "Vente",
+                })
         await log_audit(user, "sale.create", "sale", sale_id, {"total": total})
         return sale_doc
 
@@ -188,10 +244,19 @@ async def list_sales(
     for s in sales:
         s["cashier_name"] = user_map.get(s.get("user_id"), "Caissier")
         for it in s.get("items", []):
-            prod = prod_map.get(it["product_id"], {})
-            it["nom_commercial"] = prod.get("nom_commercial", "Médicament")
-            it["dci"] = prod.get("dci", "")
-            it["code_barre"] = prod.get("code_barre", "")
+            if it.get("is_act"):
+                it["nom_commercial"] = it.get("act_name") or it.get("nom_commercial") or "Acte Médical"
+                it["dci"] = "Prestation de soins"
+                it["code_barre"] = "ACTE"
+            elif it.get("is_lab"):
+                it["nom_commercial"] = it.get("lab_name") or it.get("nom_commercial") or "Examen de Laboratoire"
+                it["dci"] = "Examen de Laboratoire"
+                it["code_barre"] = "LAB"
+            else:
+                prod = prod_map.get(it["product_id"], {})
+                it["nom_commercial"] = prod.get("nom_commercial", "Médicament")
+                it["dci"] = prod.get("dci", "")
+                it["code_barre"] = prod.get("code_barre", "")
 
     return sales
 
@@ -201,6 +266,16 @@ async def get_sale(sid: str, user: dict = Depends(get_current_user)):
     db = get_db()
     s = await db.sales.find_one({"id": sid}, {"_id": 0})
     assert_same_pharmacy(user, s)
+    if s:
+        for it in s.get("items", []):
+            if it.get("is_act"):
+                it["nom_commercial"] = it.get("act_name") or it.get("nom_commercial") or "Acte Médical"
+                it["dci"] = "Prestation de soins"
+                it["code_barre"] = "ACTE"
+            elif it.get("is_lab"):
+                it["nom_commercial"] = it.get("lab_name") or it.get("nom_commercial") or "Examen de Laboratoire"
+                it["dci"] = "Examen de Laboratoire"
+                it["code_barre"] = "LAB"
     return s
 
 

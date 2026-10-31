@@ -205,9 +205,9 @@ export default function Reports() {
       {/* Top Header & Actions (Hidden in Print) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
-          <div className="label-tiny mb-1 text-primary font-bold">GESTION & DIRECTION · STATISTIQUES</div>
+          <div className="label-tiny mb-1 text-primary font-bold">GESTION ET DIRECTION · STATISTIQUES</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-            Rapports d'Activité & Rentabilité
+            Rapports d'Activité et Rentabilité
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Rapport officiel consolidé, analyse des marges, top produits phares et valorisation du stock
@@ -297,9 +297,9 @@ export default function Reports() {
       <div className="flex gap-2 border-b border-slate-200 print:hidden overflow-x-auto">
         {[
           { k: "consolidated", label: "Rapport Global Consolidé", icon: FileText },
-          { k: "sales", label: "Ventes & Encaissements", icon: ShoppingBag },
-          { k: "top", label: "Produits Phares (Volume & CA)", icon: TrendingUp },
-          { k: "margins", label: "Marges & Rentabilité", icon: DollarSign },
+          { k: "sales", label: "Ventes et Encaissements", icon: ShoppingBag },
+          { k: "top", label: "Produits Phares (Volume et CA)", icon: TrendingUp },
+          { k: "margins", label: "Marges et Rentabilité", icon: DollarSign },
         ].map((tabBtn) => (
           <button
             key={tabBtn.k}
@@ -356,7 +356,7 @@ export default function Reports() {
                   DOCUMENT OFFICIEL
                 </div>
                 <div className="font-heading font-black text-sm text-emerald-950 mt-1">
-                  RAPPORT D'ACTIVITÉ & GESTION
+                  RAPPORT D'ACTIVITÉ ET GESTION
                 </div>
                 <div className="text-slate-600 font-medium text-[11px]">
                   Période : <strong className="text-slate-900">{dateRange.label}</strong>
@@ -375,7 +375,7 @@ export default function Reports() {
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                 <h3 className="font-heading font-black text-sm uppercase tracking-wider text-slate-900">
-                  1. Synthèse Financière & Performance Commerciale
+                  1. Synthèse Financière et Performance Commerciale
                 </h3>
               </div>
 
@@ -411,7 +411,7 @@ export default function Reports() {
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                  <div className="text-[10px] font-bold uppercase text-slate-500">Panier Moyen & Rx</div>
+                  <div className="text-[10px] font-bold uppercase text-slate-500">Panier Moyen et Rx</div>
                   <div className="font-heading font-black text-xl sm:text-2xl text-slate-900 mt-1">
                     {formatXOF(summaryData?.sales?.avg_cart || 0)}
                   </div>
@@ -473,7 +473,7 @@ export default function Reports() {
                 <div className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                   <h3 className="font-heading font-black text-sm uppercase tracking-wider text-slate-900">
-                    2. Top 10 Médicaments & Produits Phares
+                    2. Top 10 Médicaments et Produits Phares
                   </h3>
                 </div>
                 <span className="text-[11px] text-slate-500 font-medium print:hidden">Classés par Chiffre d'Affaires</span>
@@ -526,7 +526,7 @@ export default function Reports() {
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                 <h3 className="font-heading font-black text-sm uppercase tracking-wider text-slate-900">
-                  3. État des Stocks & Pertes d'Exploitation
+                  3. État des Stocks et Pertes d'Exploitation
                 </h3>
               </div>
 
@@ -562,7 +562,7 @@ export default function Reports() {
                 </div>
 
                 <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                  <div className="text-[10px] font-bold uppercase text-slate-500">Pertes & Avaries Déclarées</div>
+                  <div className="text-[10px] font-bold uppercase text-slate-500">Pertes et Avaries Déclarées</div>
                   <div className="font-heading font-black text-lg sm:text-xl text-slate-900 mt-1">
                     {formatXOF(summaryData?.losses?.total_value || 0)}
                   </div>
@@ -591,7 +591,7 @@ export default function Reports() {
                   </div>
                 </div>
                 <div className="text-[11px] font-bold text-slate-400 italic mt-6 border-t border-slate-200 pt-2">
-                  Signature & Cachet Officiel de l'Officine
+                  Signature et Cachet Officiel de l'Officine
                 </div>
               </div>
             </div>
@@ -631,7 +631,7 @@ export default function Reports() {
               <table className="w-full text-xs">
                 <thead className="bg-slate-100/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200">
                   <tr>
-                    <th className="px-4 py-3.5">Date & Heure</th>
+                    <th className="px-4 py-3.5">Date et Heure</th>
                     <th className="px-4 py-3.5">N° Ticket</th>
                     <th className="px-4 py-3.5">Client</th>
                     <th className="px-4 py-3.5 text-right">Articles</th>

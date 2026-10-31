@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional
+from pymongo import ReturnDocument
 from database import get_db
 from auth import get_current_user, require_roles, log_audit
 from tenant import pharmacy_scope, stamp_pharmacy, assert_same_pharmacy
@@ -26,13 +27,32 @@ async def create_category(data: CategoryBase, user: dict = Depends(require_roles
     return doc
 
 
-@router.delete("/categories/{cid}")
-async def delete_category(cid: str, user: dict = Depends(require_roles("super_admin", "admin"))):
+@router.put("/categories/{cid}")
+async def update_category(cid: str, data: CategoryBase, user: dict = Depends(require_roles("super_admin", "admin", "pharmacist"))):
     db = get_db()
     cat = await db.categories.find_one({"id": cid}, {"_id": 0})
+    if not cat:
+        raise HTTPException(404, "Catégorie non trouvée")
     assert_same_pharmacy(user, cat)
+    new_name = data.name.strip()
+    if not new_name:
+        raise HTTPException(400, "Le nom de la catégorie ne peut pas être vide")
+    await db.categories.update_one({"id": cid}, {"$set": {"name": new_name}})
+    await log_audit(user, "category.update", "category", cid, {"old_name": cat.get("name"), "new_name": new_name})
+    return {"id": cid, "name": new_name}
+
+
+@router.delete("/categories/{cid}")
+async def delete_category(cid: str, user: dict = Depends(require_roles("super_admin", "admin", "pharmacist"))):
+    db = get_db()
+    cat = await db.categories.find_one({"id": cid}, {"_id": 0})
+    if not cat:
+        raise HTTPException(404, "Catégorie non trouvée")
+    assert_same_pharmacy(user, cat)
+    # Detach products from this category so no orphaned constraints
+    await db.products.update_many({"categorie_id": cid}, {"$set": {"categorie_id": None}})
     await db.categories.delete_one({"id": cid})
-    await log_audit(user, "category.delete", "category", cid)
+    await log_audit(user, "category.delete", "category", cid, {"name": cat.get("name")})
     return {"ok": True}
 
 
@@ -80,6 +100,42 @@ async def list_products(q: Optional[str] = None, user: dict = Depends(get_curren
     return items
 
 
+# ---------- Internal barcode generation (EAN-13, GS1 prefix "2" = in-store use) ----------
+BARCODE_COUNTER_ID = "product_internal_barcode"
+
+
+def ean13_check_digit(body12: str) -> str:
+    """Compute the EAN-13 check digit for a 12-digit body."""
+    total = sum(int(d) * (3 if i % 2 else 1) for i, d in enumerate(body12))
+    return str((10 - total % 10) % 10)
+
+
+async def generate_internal_barcode(db, scope: dict) -> str:
+    """Return a new unique internal EAN-13 code: '2' + 11-digit sequence + check digit.
+
+    Uses an atomic MongoDB counter so two simultaneous requests never get the same number,
+    and skips any value already used (e.g. typed manually) in the pharmacy.
+    """
+    for _ in range(1000):
+        counter = await db.counters.find_one_and_update(
+            {"_id": BARCODE_COUNTER_ID},
+            {"$inc": {"seq": 1}},
+            upsert=True,
+            return_document=ReturnDocument.AFTER,
+        )
+        body = "2" + str(counter["seq"]).zfill(11)
+        code = body + ean13_check_digit(body)
+        if not await db.products.find_one({**scope, "code_barre": code}, {"_id": 1}):
+            return code
+    raise HTTPException(500, "Impossible de générer un code-barre unique")
+
+
+@router.get("/products/generate-barcode")
+async def generate_barcode(user: dict = Depends(require_roles("super_admin", "admin", "pharmacist"))):
+    db = get_db()
+    return {"code_barre": await generate_internal_barcode(db, pharmacy_scope(user))}
+
+
 @router.get("/products/{pid}")
 async def get_product(pid: str, user: dict = Depends(get_current_user)):
     db = get_db()
@@ -92,8 +148,13 @@ async def get_product(pid: str, user: dict = Depends(get_current_user)):
 async def create_product(data: ProductBase, user: dict = Depends(require_roles("super_admin", "admin", "pharmacist"))):
     db = get_db()
     scope = pharmacy_scope(user)
-    if await db.products.find_one({**scope, "code_barre": data.code_barre}):
-        raise HTTPException(400, "Code barre déjà existant pour cette pharmacie")
+    code = (data.code_barre or "").strip()
+    if code:
+        if await db.products.find_one({**scope, "code_barre": code}):
+            raise HTTPException(400, "Code barre déjà existant pour cette pharmacie")
+    else:
+        code = await generate_internal_barcode(db, scope)
+    data.code_barre = code
     doc = Product(**data.model_dump()).model_dump()
     doc["created_at"] = doc["created_at"].isoformat()
     stamp_pharmacy(user, doc)
@@ -108,6 +169,15 @@ async def update_product(pid: str, data: ProductBase, user: dict = Depends(requi
     db = get_db()
     p = await db.products.find_one({"id": pid}, {"_id": 0})
     assert_same_pharmacy(user, p)
+    scope = pharmacy_scope(user)
+    code = (data.code_barre or "").strip()
+    if code:
+        if await db.products.find_one({**scope, "code_barre": code, "id": {"$ne": pid}}):
+            raise HTTPException(400, "Code barre déjà existant pour cette pharmacie")
+    else:
+        # Field cleared: keep the existing code, or generate one if the product never had any.
+        code = p.get("code_barre") or await generate_internal_barcode(db, scope)
+    data.code_barre = code
     await db.products.update_one({"id": pid}, {"$set": data.model_dump()})
     await log_audit(user, "product.update", "product", pid)
     return await db.products.find_one({"id": pid}, {"_id": 0})

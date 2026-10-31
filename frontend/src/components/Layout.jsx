@@ -3,7 +3,7 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, ShoppingCart, Pill, Boxes, PackagePlus,
   ClipboardList, Truck, AlertTriangle, BarChart3, Users, ScrollText, LogOut, Cross, Building2, BookOpen,
-  Keyboard, Clock, Wifi, Sparkles, History
+  Keyboard, Clock, Wifi, Sparkles, History, Menu, X, Stethoscope, FlaskConical
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
@@ -15,6 +15,8 @@ const ALL_LINKS = [
   { to: "/", icon: LayoutDashboard, key: "nav_dashboard", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper", "operator"], shortcut: "F9" },
   { to: "/pos", icon: ShoppingCart, key: "nav_pos", roles: ["super_admin", "admin", "pharmacist", "cashier", "operator"], shortcut: "F2", highlight: true },
   { to: "/sales", icon: History, key: "nav_sales_history", roles: ["super_admin", "admin", "pharmacist", "cashier"], shortcut: "F8" },
+  { to: "/actes", icon: Stethoscope, key: "nav_acts", roles: ["super_admin", "admin", "pharmacist", "cashier", "operator"] },
+  { to: "/laboratoire", icon: FlaskConical, key: "nav_lab", roles: ["super_admin", "admin", "pharmacist", "cashier", "operator"] },
   { to: "/products", icon: Pill, key: "nav_products", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper", "operator"], shortcut: "F3" },
   { to: "/stock", icon: Boxes, key: "nav_stock", roles: ["super_admin", "admin", "pharmacist", "storekeeper", "operator"] },
   { to: "/reception", icon: PackagePlus, key: "nav_reception", roles: ["super_admin", "admin", "pharmacist", "storekeeper"], shortcut: "F4" },
@@ -46,6 +48,12 @@ export default function Layout({ children }) {
   const [timeStr, setTimeStr] = useState("");
   const [alertsCount, setAlertsCount] = useState({ expiring: 0, lowStock: 0 });
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile drawer on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // Live digital clock
   useEffect(() => {
@@ -114,11 +122,25 @@ export default function Layout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-screen z-30 shadow-[1px_0_4px_rgba(0,0,0,0.03)] print:hidden" data-testid="app-sidebar">
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-30 lg:hidden transition-opacity"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar (Desktop static / Mobile drawer) */}
+      <aside
+        className={`w-64 bg-white border-r border-slate-200 flex flex-col fixed inset-y-0 left-0 z-40 transition-transform duration-300 ease-in-out shadow-[1px_0_4px_rgba(0,0,0,0.03)] print:hidden ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+        data-testid="app-sidebar"
+      >
         {/* Brand Header */}
-        <div className="px-5 py-4 border-b border-slate-100 bg-gradient-to-b from-emerald-50/40 to-white">
-          <div className="flex items-center gap-3">
+        <div className="px-4 sm:px-5 py-4 border-b border-slate-100 bg-gradient-to-b from-emerald-50/40 to-white flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             <PharmacyLogo
               logoUrl={pharmacy?.logo_data || pharmacy?.logo_url}
               name={pharmacy?.name || "SGP-Pharma"}
@@ -133,15 +155,25 @@ export default function Layout({ children }) {
               </div>
             </div>
           </div>
+          {/* Close button on mobile */}
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            title="Fermer le menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {isSuperAdmin() && (
-            <div className="mt-3 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs shadow-xs" data-testid="super-admin-banner">
+        {isSuperAdmin() && (
+          <div className="px-4 py-2 border-b border-amber-100 bg-amber-50/60">
+            <div className="px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-xs shadow-xs" data-testid="super-admin-banner">
               <div className="font-bold text-amber-900 flex items-center gap-1 text-[11px]">
                 <Sparkles className="w-3.5 h-3.5 text-amber-600" /> Mode Super Admin
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Navigation Links */}
         <nav className="flex-1 overflow-y-auto py-3 px-2.5 space-y-1">
@@ -236,16 +268,38 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 ml-64 min-h-screen flex flex-col print:ml-0 print:m-0 print:p-0 print:w-full">
-        {/* Top Operator Quickbar */}
-        <header className="bg-white border-b border-slate-200/80 px-6 py-2 flex items-center justify-between sticky top-0 z-20 shadow-2xs print:hidden">
-          <div className="flex items-center gap-4 text-xs font-medium text-slate-600">
-            <div className="flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md font-mono text-[11px]">
+      <div className="flex-1 min-w-0 lg:ml-64 min-h-screen flex flex-col print:ml-0 print:m-0 print:p-0 print:w-full">
+        {/* Top Header */}
+        <header className="bg-white border-b border-slate-200/80 px-3 sm:px-6 py-2.5 flex items-center justify-between sticky top-0 z-20 shadow-2xs print:hidden">
+          <div className="flex items-center gap-2 sm:gap-4 text-xs font-medium text-slate-600 min-w-0">
+            {/* Hamburger Button on Mobile */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              data-testid="mobile-menu-btn"
+              className="lg:hidden p-2 -ml-1 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center"
+              title="Ouvrir le menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Mobile Brand Name */}
+            <div className="lg:hidden flex items-center gap-2 min-w-0">
+              <PharmacyLogo
+                logoUrl={pharmacy?.logo_data || pharmacy?.logo_url}
+                name={pharmacy?.name || "SGP-Pharma"}
+                size="sm"
+              />
+              <span className="font-heading font-black text-xs sm:text-sm text-slate-900 truncate max-w-[140px]">
+                {pharmacy?.name || "SGP-Pharma"}
+              </span>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-1.5 text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md font-mono text-[11px] whitespace-nowrap">
               <Clock className="w-3.5 h-3.5 text-primary" />
               <span>{timeStr}</span>
             </div>
 
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Accès rapide :</span>
               {user && ["super_admin", "admin", "pharmacist", "cashier", "operator"].includes(user.role) && (
                 <button onClick={() => navigate("/pos")} className="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded font-semibold text-[11px] flex items-center gap-1">
@@ -271,16 +325,19 @@ export default function Layout({ children }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Connecté en tant que</div>
-              <div className="text-xs font-bold text-slate-800">{user?.name} · <span className="text-primary font-semibold">{t(ROLE_LABEL[user?.role] || "")}</span></div>
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="text-right">
+              <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:block">Connecté</div>
+              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <span className="truncate max-w-[100px] sm:max-w-none">{user?.name}</span>
+                <span className="text-primary font-semibold text-[10px] sm:text-xs">({t(ROLE_LABEL[user?.role] || "")})</span>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Body */}
-        <main className="flex-1 p-6 md:p-8 print:p-0 print:m-0 print:w-full">
+        <main className="flex-1 min-w-0 p-3 sm:p-5 md:p-6 lg:p-8 print:p-0 print:m-0 print:w-full overflow-x-hidden">
           {children}
         </main>
       </div>

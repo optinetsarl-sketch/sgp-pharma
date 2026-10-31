@@ -169,7 +169,7 @@ export default function SalesHistory() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="label-tiny mb-1 text-primary font-bold">CAISSE & ENCAISSEMENTS · HISTORIQUE</div>
+          <div className="label-tiny mb-1 text-primary font-bold">CAISSE ET ENCAISSEMENTS · HISTORIQUE</div>
           <h1 className="font-heading text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
             Journal des Ventes de Caisse
           </h1>
@@ -388,7 +388,7 @@ export default function SalesHistory() {
                 <option value="all">Toute la journée (00h - 24h)</option>
                 <option value="morning">Matin (07h00 - 12h30)</option>
                 <option value="afternoon">Après-midi (12h30 - 18h30)</option>
-                <option value="evening">Soirée & Garde (18h30 - 07h00)</option>
+                <option value="evening">Soirée et Garde (18h30 - 07h00)</option>
                 <option value="custom">Tranche horaire personnalisée...</option>
               </select>
             </div>
@@ -467,13 +467,15 @@ export default function SalesHistory() {
           <table className="w-full text-xs">
             <thead className="bg-slate-100/80 text-left text-[11px] font-bold uppercase tracking-wider text-slate-600 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3.5">Heure & Date</th>
-                <th className="px-4 py-3.5">N° Ticket & Client</th>
-                <th className="px-4 py-3.5">Articles & Détails</th>
-                <th className="px-4 py-3.5">Règlement</th>
-                <th className="px-4 py-3.5">Ordonnance</th>
-                <th className="px-4 py-3.5 text-right">Total Encaissé</th>
-                <th className="px-4 py-3.5 text-right">Actions</th>
+                <th className="px-4 py-3.5">Heure et Date</th>
+                <th className="px-4 py-3.5">N° Ticket et Client</th>
+                <th className="px-4 py-3.5 hidden md:table-cell">Articles et Détails</th>
+                <th className="px-4 py-3.5 hidden sm:table-cell">Règlement</th>
+                <th className="px-4 py-3.5 hidden lg:table-cell">Ordonnance</th>
+                <th className="px-4 py-3.5 text-right">Total</th>
+                <th className="px-4 py-3.5 text-right sticky right-0 bg-slate-100/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -519,8 +521,8 @@ export default function SalesHistory() {
                       </div>
                     </td>
 
-                    {/* Sold Products */}
-                    <td className="px-4 py-3.5 max-w-xs">
+                    {/* Sold Products (desktop md+) */}
+                    <td className="px-4 py-3.5 max-w-xs hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {(sale.items || []).slice(0, 3).map((it, idx) => (
                           <span
@@ -539,16 +541,16 @@ export default function SalesHistory() {
                       </div>
                     </td>
 
-                    {/* Payment Method */}
-                    <td className="px-4 py-3.5">
+                    {/* Payment Method (desktop sm+) */}
+                    <td className="px-4 py-3.5 hidden sm:table-cell whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold border ${pay.bg}`}>
                         <PayIcon className="w-3 h-3" />
                         <span>{pay.label}</span>
                       </span>
                     </td>
 
-                    {/* Prescription Badge */}
-                    <td className="px-4 py-3.5">
+                    {/* Prescription Badge (desktop lg+) */}
+                    <td className="px-4 py-3.5 hidden lg:table-cell whitespace-nowrap">
                       {sale.prescription_ref || sale.prescription_image ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
                           <FileText className="w-3 h-3 text-amber-600" />
@@ -560,7 +562,7 @@ export default function SalesHistory() {
                     </td>
 
                     {/* Total Amount */}
-                    <td className="px-4 py-3.5 text-right">
+                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
                       <div className="font-mono font-black text-sm text-primary">
                         {formatXOF(sale.total_amount)}
                       </div>
@@ -569,8 +571,8 @@ export default function SalesHistory() {
                       </div>
                     </td>
 
-                    {/* Actions */}
-                    <td className="px-4 py-3.5 text-right">
+                    {/* Actions: STICKY RIGHT */}
+                    <td className="px-4 py-3.5 text-right sticky right-0 bg-white/95 backdrop-blur-xs group-hover:bg-slate-50/95 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.12)] z-10 whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setSelectedSaleForReceipt(sale)}
@@ -578,7 +580,7 @@ export default function SalesHistory() {
                           title="Imprimer Ticket de Caisse Thermique (80mm)"
                         >
                           <Printer className="w-3.5 h-3.5 text-emerald-700" />
-                          <span>Ticket</span>
+                          <span className="hidden sm:inline">Ticket</span>
                         </button>
 
                         <button

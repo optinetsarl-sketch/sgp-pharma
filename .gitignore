@@ -26,6 +26,8 @@ data_db/
 build/
 dist/
 Deployement client/
+*.rar
+*.zip
 SGP-Pharma.spec
 
 # Secrets & Local env
