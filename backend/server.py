@@ -28,6 +28,7 @@ from routes_presales import router as presales_router
 from routes_acts import router as acts_router
 from routes_lab import router as lab_router
 from routes_sync import router as sync_router
+from routes_setup import router as setup_router
 from sync_service import sync_manager
 from seed import seed_demo
 
@@ -68,6 +69,7 @@ app.include_router(presales_router)
 app.include_router(acts_router)
 app.include_router(lab_router)
 app.include_router(sync_router)
+app.include_router(setup_router)
 
 
 @app.on_event("startup")

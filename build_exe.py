@@ -58,7 +58,7 @@ def step_2_compile_pyinstaller():
         "starlette", "starlette.middleware", "starlette.middleware.cors", "starlette.staticfiles",
         "motor", "motor.motor_asyncio", "pymongo",
         "dns", "dns.resolver", "dns.asyncresolver",
-        "routes_sync", "sync_service",
+        "routes_sync", "routes_setup", "sync_service",
         "passlib", "passlib.handlers", "passlib.handlers.bcrypt", "bcrypt",
         "jwt", "jose",
         "reportlab", "reportlab.pdfgen", "reportlab.pdfgen.canvas",

@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useI18n } from "@/i18n";
 import { useNavigate, Navigate } from "react-router-dom";
 import { Cross, Loader2, Eye, EyeOff } from "lucide-react";
-import { formatApiErrorDetail } from "@/lib/api";
+import api, { formatApiErrorDetail } from "@/lib/api";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Login() {
@@ -15,6 +15,16 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    api.get("/setup/status")
+      .then((res) => {
+        if (res.data && res.data.is_configured === false) {
+          navigate("/wizard", { replace: true });
+        }
+      })
+      .catch(() => {});
+  }, [navigate]);
 
   if (user) return <Navigate to="/" replace />;
 

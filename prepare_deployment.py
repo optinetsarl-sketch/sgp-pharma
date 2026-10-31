@@ -261,27 +261,27 @@ Bienvenue dans SGP-Pharma, logiciel de gestion integree d'officine pharmaceutiqu
        http://127.0.0.1:8000
 
 --------------------------------------------------------------------------------
-4. BASE DE DONNEES ET ETAT INITIAL
+4. PREMIER DEMARRAGE ET ASSISTANT D'INITIALISATION
 --------------------------------------------------------------------------------
-  - Nom de la base : HOP-Pharma
-  - Catalogue      : 188 produits pharmaceutiques Togo / CAMEG
-  - Stocks         : TOUS LES STOCKS SONT A ZERO (Pret pour entrees d'officine)
-  - Caisse         : Prete a l'emploi des le premier approvisionnement
+  Au premier lancement de SGP-Pharma :
+    -> Si c'est une NOUVELLE INSTALLATION : l'assistant d'accueil vous invite
+       a selectionner votre ville (Togo), saisir les coordonnees de l'officine
+       et vos identifiants administrateur. Le systeme configure automatiquement
+       la base locale, cree votre espace dedie sur le Cloud OPTINET Atlas, et
+       initialise le catalogue de 188 medicaments CAMEG (stocks a zero).
+    -> Si c'est une RESTAURATION (apres changement ou formatage de machine) :
+       l'onglet 'Restaurer une Pharmacie' vous permet d'authentifier votre compte
+       Cloud et de recuperer instantanement l'integralite de vos donnees d'officine.
 
 --------------------------------------------------------------------------------
-5. IDENTIFIANTS DE CONNEXION PAR DEFAUT
+5. IDENTIFIANTS ADMINISTRATEUR
 --------------------------------------------------------------------------------
-  Compte Administrateur Unique :
-    Nom          : Admin Pharmacie
+  - Nouvelle Pharmacie : Vous definissez votre email et mot de passe administrateur
+    directement dans l'assistant au premier demarrage.
+  - Pharmacie Existante (HOP-Pharma) :
     Email        : admin@sgp-pharma.tg
     Mot de passe : Admin@2026
     Role         : Administrateur (Actif)
-
-  Note : Les autres comptes utilisateurs (caissiers, pharmaciens, magasiniers)
-         doivent etre crees depuis le menu "Utilisateurs" selon les besoins
-         propres a l'officine.
-
-  IMPORTANT : Modifiez le mot de passe de l'administrateur des la premiere connexion.
 
 --------------------------------------------------------------------------------
    OPTINET · Lome, Togo · optinetsarl@gmail.com · +228 90 74 84 65

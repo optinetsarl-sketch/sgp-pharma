@@ -25,6 +25,7 @@ import Orders from "@/pages/Orders";
 import Pharmacies from "@/pages/Pharmacies";
 import Documentation from "@/pages/Documentation";
 import PharmacySetup from "@/pages/PharmacySetup";
+import SetupWizard from "@/pages/SetupWizard";
 
 function Shell({ children }) { return <Layout>{children}</Layout>; }
 
@@ -35,6 +36,7 @@ function App() {
         <BrowserRouter>
           <Toaster position="top-right" richColors />
           <Routes>
+            <Route path="/wizard" element={<SetupWizard />} />
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<ProtectedRoute><Shell><Dashboard /></Shell></ProtectedRoute>} />
             <Route path="/pos" element={<ProtectedRoute roles={["super_admin", "admin", "pharmacist", "cashier", "operator"]}><Shell><POS /></Shell></ProtectedRoute>} />
