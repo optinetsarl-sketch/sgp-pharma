@@ -314,13 +314,22 @@ def prepare_deployment_package():
             shutil.copy2(item, dest)
     print(f"   OK - Application copiee dans {DEPLOY_DIR}")
 
-    # ── 3. Fichier .env avec DB_NAME=HOP-Pharma ───────────────────────────────
-    print("\n[2/5] Configuration .env (DB_NAME=HOP-Pharma)...")
+    # ── 3. Fichier .env avec DB_NAME=HOP-Pharma et Synchronisation Atlas ───────────────────────────────
+    print("\n[2/5] Configuration .env (DB_NAME=HOP-Pharma + MongoDB Atlas Sync)...")
     env_content = """# ============================================================
 # SGP-Pharma - Configuration d'environnement Production
 # ============================================================
+
+# Base locale (mongod installé sur ce PC)
 MONGO_URL="mongodb://localhost:27017"
 DB_NAME="HOP-Pharma"
+
+# Cluster MongoDB Atlas (Synchronisation Cloud)
+MONGO_URL_ATLAS="mongodb+srv://abrahamnabine1_db_user:Abraxi0551410896@bus-menu.pzctol2.mongodb.net/HOP-Pharma?retryWrites=true&w=majority"
+SYNC_INTERVAL_SECONDS=15
+SYNC_ENABLED=true
+
+# Sécurité & Accès
 CORS_ORIGINS="*"
 JWT_SECRET="b3a5c1e7f9d24a8d6c0e2f1b7a9c8d5e4f3b2a1c9d8e7f6a5b4c3d2e1f0a9b8c"
 ADMIN_EMAIL="admin@sgp-pharma.tg"

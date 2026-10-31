@@ -22,3 +22,4 @@ async def trigger_manual_sync(user: dict = Depends(get_current_user)):
     result = await sync_manager.perform_sync_cycle()
     status = sync_manager.get_status()
     return {"message": "Synchronisation déclenchée", "result": result, "status": status}
+

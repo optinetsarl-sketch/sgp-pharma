@@ -22,7 +22,11 @@ def step_1_build_frontend():
     print("   [1/3] Compilation du Frontend React (Production Build)...")
     print("=" * 60)
     
-    cmd = "yarn --cwd frontend build"
+    if (FRONTEND_BUILD / "index.html").exists():
+        print("[OK] Frontend React build présent et à jour !")
+        return
+
+    cmd = "npm --prefix frontend run build"
     res = subprocess.run(cmd, shell=True, cwd=ROOT_DIR)
     if res.returncode != 0:
         print("Erreur: Échec du build React.")
@@ -53,6 +57,8 @@ def step_2_compile_pyinstaller():
         "fastapi", "fastapi.staticfiles", "fastapi.responses",
         "starlette", "starlette.middleware", "starlette.middleware.cors", "starlette.staticfiles",
         "motor", "motor.motor_asyncio", "pymongo",
+        "dns", "dns.resolver", "dns.asyncresolver",
+        "routes_sync", "sync_service",
         "passlib", "passlib.handlers", "passlib.handlers.bcrypt", "bcrypt",
         "jwt", "jose",
         "reportlab", "reportlab.pdfgen", "reportlab.pdfgen.canvas",
