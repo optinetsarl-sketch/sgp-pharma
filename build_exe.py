@@ -21,11 +21,21 @@ def step_1_build_frontend():
     print("\n" + "=" * 60)
     print("   [1/3] Compilation du Frontend React (Production Build)...")
     print("=" * 60)
-    
-    if (FRONTEND_BUILD / "index.html").exists():
+
+    need_build = not (FRONTEND_BUILD / "index.html").exists()
+    if not need_build:
+        build_mtime = (FRONTEND_BUILD / "index.html").stat().st_mtime
+        src_files = [p for p in (FRONTEND_DIR / "src").rglob("*") if p.is_file()]
+        if src_files:
+            latest_src_mtime = max(p.stat().st_mtime for p in src_files)
+            if latest_src_mtime > build_mtime:
+                need_build = True
+
+    if not need_build:
         print("[OK] Frontend React build présent et à jour !")
         return
 
+    print("Recompilation du Frontend React...")
     cmd = "npm --prefix frontend run build"
     res = subprocess.run(cmd, shell=True, cwd=ROOT_DIR)
     if res.returncode != 0:

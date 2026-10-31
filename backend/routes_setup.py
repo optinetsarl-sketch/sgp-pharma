@@ -258,6 +258,7 @@ async def initialize_new_pharmacy(payload: SetupInitializeRequest, response: Res
     if sync_manager.enabled:
         try:
             sync_manager.database_name = cloud_db_name
+            sync_manager._atlas_db = None
             # Déclencher le cycle initial
             await sync_manager.perform_sync_cycle()
         except Exception:
@@ -378,6 +379,7 @@ async def restore_existing_pharmacy(payload: SetupRestoreRequest, response: Resp
 
     # Mettre à jour le sync_manager
     sync_manager.database_name = cloud_db_name
+    sync_manager._atlas_db = None
     sync_manager.init_config()
 
     # Récupérer la fiche pharmacie restaurée
@@ -403,3 +405,4 @@ async def restore_existing_pharmacy(payload: SetupRestoreRequest, response: Resp
             "pharmacy_id": atlas_admin.get("pharmacy_id"),
         }
     }
+
