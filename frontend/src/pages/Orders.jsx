@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import api, { formatXOF, formatApiErrorDetail } from "@/lib/api";
+import api, { formatXOF, formatApiErrorDetail, getBackendUrl } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import {
   Plus, Trash2, X, Download, ClipboardList, Filter, Search, FileText,
@@ -106,7 +106,7 @@ export default function Orders() {
   const supplierName = (sid) => suppliers.find((s) => s.id === sid)?.raison_sociale || "?";
 
   const downloadPdf = async (oid) => {
-    const url = `${process.env.REACT_APP_BACKEND_URL}/api/purchase-orders/${oid}/pdf`;
+    const url = `${getBackendUrl()}/api/purchase-orders/${oid}/pdf`;
     const token = localStorage.getItem("sgp_access_token");
     try {
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

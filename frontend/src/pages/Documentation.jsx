@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { getBackendUrl } from "@/lib/api";
 
 const downloads = [
   {
@@ -414,7 +415,7 @@ export default function Documentation() {
   }, [searchTerm, selectedCategory]);
 
   const download = async (item) => {
-    const url = `${process.env.REACT_APP_BACKEND_URL}${item.url}`;
+    const url = `${getBackendUrl()}${item.url}`;
     const token = localStorage.getItem("sgp_access_token");
     try {
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

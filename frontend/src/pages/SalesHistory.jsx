@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import api, { formatXOF } from "@/lib/api";
+import api, { formatXOF, getBackendUrl } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -147,7 +147,7 @@ export default function SalesHistory() {
   };
 
   const downloadPdf = async (sid) => {
-    const url = `${process.env.REACT_APP_BACKEND_URL}/api/sales/${sid}/receipt.pdf`;
+    const url = `${getBackendUrl()}/api/sales/${sid}/receipt.pdf`;
     const token = localStorage.getItem("sgp_access_token");
     try {
       const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });

@@ -1,6 +1,16 @@
 import axios from "axios";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : "";
+export function getBackendUrl() {
+  if (typeof window !== "undefined" && window.location) {
+    const { hostname, port, protocol } = window.location;
+    if (port === "3000") {
+      return `${protocol}//${hostname}:8000`;
+    }
+    return "";
+  }
+  return process.env.REACT_APP_BACKEND_URL || "";
+}
+
 const TOKEN_KEY = "sgp_access_token";
 
 export function getToken() { return localStorage.getItem(TOKEN_KEY); }
@@ -10,7 +20,7 @@ export function setToken(t) {
 }
 
 const api = axios.create({
-  baseURL: BACKEND_URL ? `${BACKEND_URL}/api` : "/api",
+  baseURL: `${getBackendUrl()}/api`,
   headers: { "Content-Type": "application/json" },
 });
 

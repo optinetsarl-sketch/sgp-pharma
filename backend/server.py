@@ -34,10 +34,10 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="SGP-Pharma API", version="1.0.0")
 
-# CORS: local frontend only.
+# CORS: local frontend & private LAN subnets (192.168.x.x, 10.x.x.x, 172.16-31.x.x, localhost)
 app.add_middleware(
     CORSMiddleware,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
