@@ -192,6 +192,27 @@ cd /d "%~dp0"
 cscript //nologo "Creer_Raccourci_Bureau.vbs"
 """
 
+FIREWALL_BAT_CONTENT = """@echo off
+title Autoriser l'acces reseau local SGP-Pharma
+cd /d "%~dp0"
+echo ============================================================
+echo   AUTORISATION DU PORT 8000 DANS LE PARE-FEU WINDOWS
+echo ============================================================
+echo.
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Demande des droits Administrateur pour ouvrir le port reseau...
+    powershell -NoProfile -Command "Start-Process cmd -ArgumentList '/c `"%~f0`"' -Verb RunAs"
+    exit /b
+)
+echo Ajout de la regle de pare-feu pour le port 8000 (caisses et reseau local)...
+netsh advfirewall firewall add rule name="SGP-Pharma Port 8000" dir=in action=allow protocol=TCP localport=8000 profile=any
+echo.
+echo [SUCCES] Le port 8000 est autorise pour toutes les machines du reseau local !
+echo.
+pause
+"""
+
 
 # ── Lanceur Debug BAT ─────────────────────────────────────────────────────────
 BAT_CONTENT = """@echo off
@@ -360,12 +381,15 @@ SEED_DEMO="true"
         f.write(SHORTCUT_VBS_CONTENT)
     with open(DEPLOY_DIR / "Creer_Raccourci_Bureau.bat", "w", encoding="utf-8") as f:
         f.write(SHORTCUT_BAT_CONTENT)
+    with open(DEPLOY_DIR / "AUTORISER_RESEAU_LOCAL.bat", "w", encoding="utf-8") as f:
+        f.write(FIREWALL_BAT_CONTENT)
     with open(DEPLOY_DIR / "LANCER_DEBUG.bat", "w", encoding="utf-8") as f:
         f.write(BAT_CONTENT)
 
     print("   OK - 'Lancer Silencieux.vbs' cree")
     print("   OK - 'Lancer SGP-Pharma.vbs' cree")
     print("   OK - 'Creer_Raccourci_Bureau.bat' & .vbs crees")
+    print("   OK - 'AUTORISER_RESEAU_LOCAL.bat' cree")
     print("   OK - 'LANCER_DEBUG.bat' cree")
 
     # ── 6. Guide d'installation ────────────────────────────────────────────────

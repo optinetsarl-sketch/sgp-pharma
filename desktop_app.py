@@ -62,11 +62,11 @@ def find_free_port(preferred_port: int = 8000) -> int:
         if s.connect_ex(('127.0.0.1', preferred_port)) != 0:
             return preferred_port
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('127.0.0.1', 0))
+        s.bind(('0.0.0.0', 0))
         return s.getsockname()[1]
 
 
-def start_uvicorn_server(host: str = "127.0.0.1", port: int = 8000) -> None:
+def start_uvicorn_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     """Lance le serveur uvicorn (FastAPI) - destine a tourner dans un thread daemon."""
     import uvicorn
     import server  # backend/server.py
@@ -109,7 +109,7 @@ def main() -> None:
     # -- Lancer FastAPI dans un thread daemon ------------------------------------
     threading.Thread(
         target=start_uvicorn_server,
-        args=("127.0.0.1", port),
+        args=("0.0.0.0", port),
         daemon=True,
         name="uvicorn-server"
     ).start()
