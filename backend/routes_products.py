@@ -5,6 +5,7 @@ from database import get_db
 from auth import get_current_user, require_roles, log_audit
 from tenant import pharmacy_scope, stamp_pharmacy, assert_same_pharmacy
 from models import Product, ProductBase, Category, CategoryBase, gen_id, now_utc
+from sync_service import register_tombstone
 
 router = APIRouter(prefix="/api", tags=["products"])
 
@@ -37,7 +38,7 @@ async def update_category(cid: str, data: CategoryBase, user: dict = Depends(req
     new_name = data.name.strip()
     if not new_name:
         raise HTTPException(400, "Le nom de la catégorie ne peut pas être vide")
-    await db.categories.update_one({"id": cid}, {"$set": {"name": new_name}})
+    await db.categories.update_one({"id": cid}, {"$set": {"name": new_name, "_synced": False}})
     await log_audit(user, "category.update", "category", cid, {"old_name": cat.get("name"), "new_name": new_name})
     return {"id": cid, "name": new_name}
 
@@ -52,6 +53,7 @@ async def delete_category(cid: str, user: dict = Depends(require_roles("super_ad
     # Detach products from this category so no orphaned constraints
     await db.products.update_many({"categorie_id": cid}, {"$set": {"categorie_id": None}})
     await db.categories.delete_one({"id": cid})
+    await register_tombstone(db, "categories", cid)
     await log_audit(user, "category.delete", "category", cid, {"name": cat.get("name")})
     return {"ok": True}
 
@@ -178,7 +180,7 @@ async def update_product(pid: str, data: ProductBase, user: dict = Depends(requi
         # Field cleared: keep the existing code, or generate one if the product never had any.
         code = p.get("code_barre") or await generate_internal_barcode(db, scope)
     data.code_barre = code
-    await db.products.update_one({"id": pid}, {"$set": data.model_dump()})
+    await db.products.update_one({"id": pid}, {"$set": {**data.model_dump(), "_synced": False, "updated_at": now_utc().isoformat()}})
     await log_audit(user, "product.update", "product", pid)
     return await db.products.find_one({"id": pid}, {"_id": 0})
 
@@ -189,5 +191,6 @@ async def delete_product(pid: str, user: dict = Depends(require_roles("super_adm
     p = await db.products.find_one({"id": pid}, {"_id": 0})
     assert_same_pharmacy(user, p)
     await db.products.delete_one({"id": pid})
+    await register_tombstone(db, "products", pid)
     await log_audit(user, "product.delete", "product", pid)
     return {"ok": True}

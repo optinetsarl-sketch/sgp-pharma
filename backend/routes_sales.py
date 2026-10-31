@@ -110,7 +110,7 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
                 take = min(remaining, batch["current_quantity"])
                 res = await db.batches.update_one(
                     {"id": batch["id"], "current_quantity": {"$gte": take}},
-                    {"$inc": {"current_quantity": -take}},
+                    {"$inc": {"current_quantity": -take}, "$set": {"_synced": False}},
                 )
                 if res.modified_count == 0:
                     fresh = await db.batches.find_one({"id": batch["id"]}, {"_id": 0})
@@ -119,7 +119,7 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
                     take = min(remaining, fresh["current_quantity"])
                     res = await db.batches.update_one(
                         {"id": batch["id"], "current_quantity": {"$gte": take}},
-                        {"$inc": {"current_quantity": -take}},
+                        {"$inc": {"current_quantity": -take}, "$set": {"_synced": False}},
                     )
                     if res.modified_count == 0:
                         continue
@@ -127,7 +127,7 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
                 rollback_ops.append((batch["id"], take))
                 fresh_after = await db.batches.find_one({"id": batch["id"]}, {"_id": 0})
                 if fresh_after and fresh_after["current_quantity"] == 0:
-                    await db.batches.update_one({"id": batch["id"]}, {"$set": {"status": "depleted"}})
+                    await db.batches.update_one({"id": batch["id"]}, {"$set": {"status": "depleted", "_synced": False}})
 
                 sub = round(take * unit_price, 2)
                 total += sub
@@ -192,7 +192,7 @@ async def create_sale(payload: SaleRequest, user: dict = Depends(require_roles("
 
     except HTTPException:
         for bid, qty in rollback_ops:
-            await db.batches.update_one({"id": bid}, {"$inc": {"current_quantity": qty}, "$set": {"status": "active"}})
+            await db.batches.update_one({"id": bid}, {"$inc": {"current_quantity": qty}, "$set": {"status": "active", "_synced": False}})
         raise
 
 

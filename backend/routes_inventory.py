@@ -158,7 +158,7 @@ async def receive_stock(payload: ReceptionRequest, user: dict = Depends(require_
         created.append(bid)
         await log_audit(user, "reception.create", "batch", bid, {"product_id": item.product_id, "qty": item.quantity})
     if payload.purchase_order_id:
-        await db.purchase_orders.update_one({"id": payload.purchase_order_id}, {"$set": {"status": "received"}})
+        await db.purchase_orders.update_one({"id": payload.purchase_order_id}, {"$set": {"status": "received", "_synced": False}})
     return {"ok": True, "batch_ids": created}
 
 
@@ -167,7 +167,7 @@ async def block_batch(bid: str, user: dict = Depends(require_roles("super_admin"
     db = get_db()
     b = await db.batches.find_one({"id": bid}, {"_id": 0})
     assert_same_pharmacy(user, b)
-    await db.batches.update_one({"id": bid}, {"$set": {"status": "blocked"}})
+    await db.batches.update_one({"id": bid}, {"$set": {"status": "blocked", "_synced": False}})
     await log_audit(user, "batch.block", "batch", bid)
     return {"ok": True}
 
@@ -192,7 +192,7 @@ async def declare_loss(payload: LossRequest, user: dict = Depends(require_roles(
         raise HTTPException(400, "Quantité invalide")
     new_qty = batch["current_quantity"] - payload.quantity
     new_status = "depleted" if new_qty == 0 else batch["status"]
-    await db.batches.update_one({"id": payload.batch_id}, {"$set": {"current_quantity": new_qty, "status": new_status}})
+    await db.batches.update_one({"id": payload.batch_id}, {"$set": {"current_quantity": new_qty, "status": new_status, "_synced": False}})
     motif_map = {"peremption": "PERTE_PEREMPTION", "casse": "PERTE_CASSE", "vol": "PERTE_VOL"}
     lid = gen_id()
     await db.losses.insert_one({
@@ -280,6 +280,6 @@ async def update_order_status(oid: str, status: PurchaseOrderStatus, user: dict 
     db = get_db()
     o = await db.purchase_orders.find_one({"id": oid}, {"_id": 0})
     assert_same_pharmacy(user, o)
-    await db.purchase_orders.update_one({"id": oid}, {"$set": {"status": status}})
+    await db.purchase_orders.update_one({"id": oid}, {"$set": {"status": status, "_synced": False}})
     await log_audit(user, "purchase_order.status", "purchase_order", oid, {"status": status})
     return {"ok": True}

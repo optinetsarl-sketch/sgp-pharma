@@ -10,6 +10,7 @@ import { useI18n } from "@/i18n";
 import api from "@/lib/api";
 import LanguageSwitcher from "./LanguageSwitcher";
 import PharmacyLogo from "./PharmacyLogo";
+import SyncStatusBadge from "./SyncStatusBadge";
 
 const ALL_LINKS = [
   { to: "/", icon: LayoutDashboard, key: "nav_dashboard", roles: ["super_admin", "admin", "pharmacist", "cashier", "storekeeper", "operator"], shortcut: "F9" },
@@ -326,6 +327,7 @@ export default function Layout({ children }) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <SyncStatusBadge />
             <div className="text-right">
               <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:block">Connecté</div>
               <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
