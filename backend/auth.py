@@ -227,24 +227,12 @@ async def seed_admin():
             "created_at": now_utc().isoformat(),
         })
 
-    # 2. Ensure default pharmacy exists
-    pharmacy = await db.pharmacies.find_one({})
+    # 2. Pharmacy admin: uniquement si une pharmacie est configuree
+    pharmacy = await db.pharmacies.find_one({"active": True, "is_configured": True})
     if not pharmacy:
-        pharma_id = gen_id()
-        pharm_doc = Pharmacy(
-            id=pharma_id,
-            name="Pharmacie HOPE",
-            address="Lomé, Togo",
-            phone="+228 90 74 84 65",
-            email="contact@sgp-pharma.tg",
-            currency="FCFA",
-            is_configured=False,
-            active=True
-        ).model_dump()
-        pharm_doc["created_at"] = pharm_doc["created_at"].isoformat()
-        await db.pharmacies.insert_one(pharm_doc)
-    else:
-        pharma_id = pharmacy["id"]
+        return  # Aucune pharmacie configuree : en attente de l'assistant d'accueil
+
+    pharma_id = pharmacy["id"]
 
     # 3. Default pharmacy admin: must always have a valid pharmacy_id
     email = os.environ.get("ADMIN_EMAIL", "admin@sgp-pharma.tg").lower()

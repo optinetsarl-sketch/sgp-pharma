@@ -103,7 +103,12 @@ async def get_installation_status():
     """Vérifie l'état de l'installation actuelle (locale et Cloud)."""
     db = get_db()
     pharmacy = await db.pharmacies.find_one({"active": True}, {"_id": 0})
-    is_configured = bool(pharmacy and (pharmacy.get("is_configured") or pharmacy.get("name")))
+    is_configured = False
+    if pharmacy:
+        if pharmacy.get("is_configured") is True:
+            is_configured = True
+        elif pharmacy.get("is_configured") is None and pharmacy.get("name") and pharmacy.get("name") != "Pharmacie HOPE":
+            is_configured = True
 
     return {
         "is_configured": is_configured,
@@ -111,7 +116,7 @@ async def get_installation_status():
             "id": pharmacy.get("id"),
             "name": pharmacy.get("name"),
             "city": pharmacy.get("city"),
-        } if pharmacy else None,
+        } if (pharmacy and is_configured) else None,
         "current_db_name": os.environ.get("DB_NAME", "HOP-Pharma"),
         "cloud_sync_enabled": sync_manager.enabled,
         "cloud_connected": sync_manager.connected,
@@ -139,12 +144,15 @@ async def initialize_new_pharmacy(payload: SetupInitializeRequest, response: Res
     4. Création de la base Cloud dédiée sur Atlas et premier envoi si en ligne.
     """
     db = get_db()
-    existing = await db.pharmacies.find_one({"active": True})
+    existing = await db.pharmacies.find_one({"active": True, "is_configured": True})
     if existing:
         raise HTTPException(
             status_code=400,
             detail="Une pharmacie est déjà initialisée sur cette machine. Aucune réinitialisation permise."
         )
+
+    # Nettoyage préventif d'éventuels résidus non configurés
+    await db.pharmacies.delete_many({"is_configured": {"$ne": True}})
 
     # 1. Génération d'un pharmacy_id unique et permanent
     pharmacy_id = f"pha_{uuid.uuid4()}"
@@ -294,7 +302,7 @@ async def restore_existing_pharmacy(payload: SetupRestoreRequest, response: Resp
     3. Rapatrie tous les documents et recrée la base locale à l'identique.
     """
     local_db = get_db()
-    existing = await local_db.pharmacies.find_one({"active": True})
+    existing = await local_db.pharmacies.find_one({"active": True, "is_configured": True})
     if existing:
         raise HTTPException(
             status_code=400,

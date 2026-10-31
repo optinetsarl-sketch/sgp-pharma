@@ -34,9 +34,12 @@ async def seed_demo():
     if os.environ.get("SEED_DEMO", "true").lower() != "true":
         return
 
-    # Ensure demo users always exist
-    first_pharmacy = await db.pharmacies.find_one({"active": True})
-    pharma_id = first_pharmacy["id"] if first_pharmacy else None
+    # Ne pas injecter de demo si aucune pharmacie n'est configuree (attendre l'assistant)
+    first_pharmacy = await db.pharmacies.find_one({"active": True, "is_configured": True})
+    if not first_pharmacy:
+        return
+
+    pharma_id = first_pharmacy["id"]
 
     for u in DEMO_USERS_PHARMACY:
         existing = await db.users.find_one({"email": u["email"]})

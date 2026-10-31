@@ -15,18 +15,30 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSetup, setCheckingSetup] = useState(true);
 
   useEffect(() => {
     api.get("/setup/status")
       .then((res) => {
         if (res.data && res.data.is_configured === false) {
           navigate("/wizard", { replace: true });
+        } else {
+          setCheckingSetup(false);
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        setCheckingSetup(false);
+      });
   }, [navigate]);
 
   if (user) return <Navigate to="/" replace />;
+  if (checkingSetup) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+      </div>
+    );
+  }
 
   const submit = async (e) => {
     e?.preventDefault();
